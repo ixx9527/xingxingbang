@@ -62,7 +62,7 @@ xingxingbang/
 
 ```bash
 cd /volume1/docker
-git clone <your-repo> xingxingbang
+git clone git@github.com:ixx9527/xingxingbang.git
 cd xingxingbang
 ```
 
