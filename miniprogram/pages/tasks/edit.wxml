@@ -1,0 +1,38 @@
+<!--pages/tasks/edit.wxml-->
+<view class="container">
+  <view class="form-item">
+    <text class="label">任务名称</text>
+    <input class="input" placeholder="请输入任务名称" value="{{name}}" bindinput="onNameInput" />
+  </view>
+
+  <view class="form-item">
+    <text class="label">积分分值</text>
+    <view class="points-ctrl">
+      <button class="points-btn" bindtap="onPointsChange" data-type="minus">-</button>
+      <text class="points-value {{points > 0 ? 'plus' : 'minus'}}">{{points > 0 ? '+' : ''}}{{points}}</text>
+      <button class="points-btn" bindtap="onPointsChange" data-type="add">+</button>
+    </view>
+  </view>
+
+  <view class="form-item">
+    <text class="label">分类</text>
+    <picker mode="selector" range="{{categories}}" bindchange="onCategoryChange">
+      <view class="picker">{{category}}</view>
+    </picker>
+  </view>
+
+  <view class="form-item">
+    <text class="label">图标</text>
+    <view class="icon-grid">
+      <view 
+        class="icon-item {{icon === item ? 'active' : ''}}"
+        wx:for="{{icons}}"
+        wx:key="*this"
+        bindtap="onIconSelect"
+        data-icon="{{item}}"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <button class="save-btn" bindtap="save" loading="{{loading}}">保 存</button>
+</view>

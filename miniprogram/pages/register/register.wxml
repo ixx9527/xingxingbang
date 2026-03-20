@@ -1,0 +1,40 @@
+<!--pages/register/register.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">注册账号</text>
+    <text class="subtitle">加入星星榜</text>
+  </view>
+
+  <view class="form">
+    <view class="input-group">
+      <text class="input-icon">👤</text>
+      <input class="input" placeholder="请输入用户名" data-field="username" bindinput="onInput" />
+    </view>
+
+    <view class="input-group">
+      <text class="input-icon">🔒</text>
+      <input class="input" type="password" placeholder="请输入密码" data-field="password" bindinput="onInput" />
+    </view>
+
+    <view class="input-group">
+      <text class="input-icon">🔒</text>
+      <input class="input" type="password" placeholder="请再次输入密码" data-field="confirmPassword" bindinput="onInput" />
+    </view>
+
+    <view class="input-group">
+      <text class="input-icon">👨‍👩‍👧</text>
+      <input class="input" placeholder="请输入家长昵称" data-field="nickname" bindinput="onInput" />
+    </view>
+
+    <view class="input-group">
+      <text class="input-icon">🔑</text>
+      <input class="input" placeholder="请输入邀请码" data-field="inviteCode" bindinput="onInput" />
+    </view>
+
+    <button class="btn-register" bindtap="register" loading="{{loading}}">注 册</button>
+
+    <view class="login-link">
+      已有账号？<text bindtap="wx.navigateBack">立即登录</text>
+    </view>
+  </view>
+</view>

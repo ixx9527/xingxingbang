@@ -1,0 +1,93 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:else>
+    <!-- 头部信息 -->
+    <view class="header-card">
+      <view class="child-selector">
+        <picker mode="selector" range="{{children}}" range-key="name" bindchange="switchChild">
+          <view class="picker">
+            <text class="child-name">{{currentChild.name}}</text>
+            <text class="down-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="score-summary">
+        <view class="score-item">
+          <text class="score-label">今日获得</text>
+          <text class="score-value plus">⭐ {{todayScore}}</text>
+        </view>
+        <view class="score-item">
+          <text class="score-label">连续打卡</text>
+          <text class="score-value">🔥 {{streakDays}} 天</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 任务列表 -->
+    <view class="section">
+      <view class="section-title">📋 今日任务</view>
+      
+      <view class="behavior-list">
+        <view 
+          class="behavior-card plus"
+          wx:for="{{behaviors}}"
+          wx:key="id"
+          bindtap="onCheckin"
+          data-id="{{item.id}}"
+          data-points="{{item.points}}"
+          data-name="{{item.name}}"
+        >
+          <view class="behavior-left">
+            <text class="behavior-icon">{{item.icon}}</text>
+            <text class="behavior-name">{{item.name}}</text>
+          </view>
+          <view class="behavior-right">
+            <text class="behavior-points plus">+{{item.points}} ⭐</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 扣分项 -->
+    <view class="section">
+      <view class="section-title">⚠️ 扣分项</view>
+      
+      <view class="behavior-list">
+        <view 
+          class="behavior-card minus"
+          wx:for="{{deductBehaviors}}"
+          wx:key="id"
+          bindtap="onDeduct"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+        >
+          <view class="behavior-left">
+            <text class="behavior-icon">{{item.icon}}</text>
+            <text class="behavior-name">{{item.name}}</text>
+          </view>
+          <view class="behavior-right">
+            <text class="behavior-points minus">{{item.points}} ⭐</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快捷入口 -->
+    <view class="quick-actions">
+      <view class="action-btn" bindtap="goStats">
+        <text class="action-icon">📊</text>
+        <text class="action-text">查看统计</text>
+      </view>
+      <view class="action-btn" bindtap="goTasks">
+        <text class="action-icon">📝</text>
+        <text class="action-text">管理任务</text>
+      </view>
+    </view>
+  </view>
+</view>

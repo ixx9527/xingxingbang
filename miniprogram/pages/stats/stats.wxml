@@ -1,0 +1,75 @@
+<!--pages/stats/stats.wxml-->
+<view class="container">
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <view wx:else>
+    <!-- 孩子选择 -->
+    <view class="child-picker">
+      <picker mode="selector" range="{{children}}" range-key="name" bindchange="switchChild">
+        <view class="picker-view">
+          <text>{{currentChild.name}}</text>
+          <text class="arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 统计概览 -->
+    <view class="stats-card">
+      <view class="stat-item">
+        <text class="stat-label">今日积分</text>
+        <text class="stat-value plus">+{{stats.today_points}}</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-label">累计积分</text>
+        <text class="stat-value">{{stats.total_points}}</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-label">连续打卡</text>
+        <text class="stat-value">🔥 {{stats.streak_days}}天</text>
+      </view>
+    </view>
+
+    <!-- 分类统计 -->
+    <view class="section">
+      <view class="section-title">📊 分类统计</view>
+      <view class="category-list">
+        <view class="category-item" wx:for="{{stats.behavior_stats}}" wx:key="category">
+          <view class="category-info">
+            <text class="category-name">{{item.category}}</text>
+            <text class="category-points {{item.points >= 0 ? 'plus' : 'minus'}}">
+              {{item.points >= 0 ? '+' : ''}}{{item.points}}
+            </text>
+          </view>
+          <view class="category-bar">
+            <view class="category-bar-fill" style="width: {{Math.abs(item.points) / (stats.total_points || 1) * 100}}%"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 打卡记录 -->
+    <view class="section">
+      <view class="section-title">📅 最近打卡记录</view>
+      <view class="record-list">
+        <view class="record-item" wx:for="{{records}}" wx:key="id">
+          <view class="record-left">
+            <text class="record-icon">{{item.behavior_icon}}</text>
+            <view class="record-info">
+              <text class="record-name">{{item.behavior_name}}</text>
+              <text class="record-date">{{item.created_at}}</text>
+            </view>
+          </view>
+          <text class="record-points {{item.points >= 0 ? 'plus' : 'minus'}}">
+            {{item.points >= 0 ? '+' : ''}}{{item.points}}
+          </text>
+        </view>
+
+        <view wx:if="{{records.length === 0}}" class="empty">
+          <text>暂无打卡记录</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
