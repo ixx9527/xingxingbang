@@ -7,7 +7,6 @@ import Children from '../views/Children.vue'
 import Behaviors from '../views/Behaviors.vue'
 import Records from '../views/Records.vue'
 import InviteCodes from '../views/InviteCodes.vue'
-import { useUserStore } from '../api/user'
 
 const routes = [
   {
