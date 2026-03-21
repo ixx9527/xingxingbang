@@ -374,6 +374,26 @@ def get_child_level(
 
 # ========== 运行入口 ==========
 
+@app.post("/user/change-password")
+def change_password(
+    req: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """修改密码"""
+    user = crud.get_user_by_id(db, current_user["id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    if not verify_password(req["old_password"], user.password_hash):
+        raise HTTPException(status_code=400, detail="当前密码错误")
+    
+    user.password_hash = get_password_hash(req["new_password"])
+    db.commit()
+    
+    return {"message": "密码修改成功"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

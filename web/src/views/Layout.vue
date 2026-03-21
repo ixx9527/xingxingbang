@@ -36,6 +36,9 @@
       <el-header>
         <div class="header-right">
           <span class="username">{{ username }}</span>
+          <el-button type="warning" size="small" @click="showPasswordDialog = true">
+            修改密码
+          </el-button>
           <el-button type="danger" size="small" @click="handleLogout">
             退出
           </el-button>
@@ -46,17 +49,86 @@
         <router-view />
       </el-main>
     </el-container>
+    
+    <!-- 修改密码对话框 -->
+    <el-dialog v-model="showPasswordDialog" title="修改密码" width="400px">
+      <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef">
+        <el-form-item label="当前密码" prop="old_password">
+          <el-input v-model="pwdForm.old_password" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="新密码" prop="new_password">
+          <el-input v-model="pwdForm.new_password" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirm_password">
+          <el-input v-model="pwdForm.confirm_password" type="password" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showPasswordDialog = false">取消</el-button>
+        <el-button type="primary" :loading="pwdLoading" @click="handleChangePassword">确定</el-button>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { DataAnalysis, User, EditPen, Collection, Key } from '@element-plus/icons-vue'
+import api from '../api'
 
 const router = useRouter()
 const route = useRoute()
 const username = ref('')
+const showPasswordDialog = ref(false)
+const pwdLoading = ref(false)
+const pwdFormRef = ref()
+
+const pwdForm = reactive({
+  old_password: '',
+  new_password: '',
+  confirm_password: ''
+})
+
+const validateConfirm = (rule, value, callback) => {
+  if (value !== pwdForm.new_password) {
+    callback(new Error('两次密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const pwdRules = {
+  old_password: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  new_password: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '密码至少6位', trigger: 'blur' }
+  ],
+  confirm_password: [
+    { required: true, message: '请确认密码', trigger: 'blur' },
+    { validator: validateConfirm, trigger: 'blur' }
+  ]
+}
+
+const handleChangePassword = async () => {
+  const valid = await pwdFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  
+  pwdLoading.value = true
+  try {
+    await api.post('/user/change-password', {
+      old_password: pwdForm.old_password,
+      new_password: pwdForm.new_password
+    })
+    ElMessage.success('密码修改成功')
+    showPasswordDialog.value = false
+  } catch (err) {
+    ElMessage.error(err.response?.data?.detail || '修改失败')
+  } finally {
+    pwdLoading.value = false
+  }
+}
 
 onMounted(() => {
   const user = localStorage.getItem('username')
