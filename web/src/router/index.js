@@ -11,30 +11,31 @@ import InviteCodes from '../views/InviteCodes.vue'
 const router = createRouter({
   history: createWebHistory('/admin/'),
   routes: [
-  {
-    path: '/login',
-    name: 'Login',
-    component: Login
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: Register
-  },
-  {
-    path: '/',
-    component: Layout,
-    meta: { requiresAuth: true },
-    children: [
-      { path: '', redirect: '/dashboard' },
-      { path: 'dashboard', name: 'Dashboard', component: Dashboard },
-      { path: 'children', name: 'Children', component: Children },
-      { path: 'behaviors', name: 'Behaviors', component: Behaviors },
-      { path: 'records', name: 'Records', component: Records },
-      { path: 'invite-codes', name: 'InviteCodes', component: InviteCodes }
-    ]
-  }
-]
+    {
+      path: '/login',
+      name: 'Login',
+      component: Login
+    },
+    {
+      path: '/register',
+      name: 'Register',
+      component: Register
+    },
+    {
+      path: '/',
+      component: Layout,
+      meta: { requiresAuth: true },
+      children: [
+        { path: '', redirect: '/dashboard' },
+        { path: 'dashboard', name: 'Dashboard', component: Dashboard },
+        { path: 'children', name: 'Children', component: Children },
+        { path: 'behaviors', name: 'Behaviors', component: Behaviors },
+        { path: 'records', name: 'Records', component: Records },
+        { path: 'invite-codes', name: 'InviteCodes', component: InviteCodes }
+      ]
+    }
+  ]
+})
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
