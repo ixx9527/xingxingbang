@@ -8,7 +8,9 @@ import Behaviors from '../views/Behaviors.vue'
 import Records from '../views/Records.vue'
 import InviteCodes from '../views/InviteCodes.vue'
 
-const routes = [
+const router = createRouter({
+  history: createWebHistory('/admin/'),
+  routes: [
   {
     path: '/login',
     name: 'Login',
@@ -33,11 +35,6 @@ const routes = [
     ]
   }
 ]
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
