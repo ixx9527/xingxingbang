@@ -6,7 +6,7 @@
           <h2>⭐ 注册账号</h2>
           <p>需要邀请码才能注册</p>
         </div>
-      </el-form-item>
+      </template>
       
       <el-form :model="form" :rules="rules" ref="formRef" @submit.prevent="handleRegister">
         <el-form-item prop="username">
