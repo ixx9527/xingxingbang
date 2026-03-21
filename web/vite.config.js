@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    allowedHosts: ['www.ixx9527.club', 'xingxingbang.ixx9527.club'],
     proxy: {
       '/api': {
         target: 'http://backend:8000',
