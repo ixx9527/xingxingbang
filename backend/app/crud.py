@@ -416,4 +416,30 @@ def init_default_data(db: Session):
             db.add(lvl)
         
         db.commit()
-        print("默认数据初始化完成")
+    
+    # 初始化默认管理员（如果不存在）
+    admin = db.query(models.User).filter(models.User.username == "admin").first()
+    if not admin:
+        from app.security import get_password_hash
+        admin = models.User(
+            username="admin",
+            nickname="管理员",
+            password_hash=get_password_hash("admin123")
+        )
+        db.add(admin)
+        db.commit()
+        
+        # 创建默认邀请码
+        invite = models.InviteCode(
+            code="admin001",
+            user_id=admin.id,
+            max_uses=-1,  # 无限
+            used_count=0,
+            is_active=True,
+            note="管理员邀请码"
+        )
+        db.add(invite)
+        db.commit()
+        print("默认管理员初始化完成: admin / admin123")
+    
+    print("默认数据初始化完成")
