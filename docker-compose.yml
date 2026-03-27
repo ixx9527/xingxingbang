@@ -22,7 +22,7 @@ services:
 
   # Web 管理后台
   web:
-    image: node:18-alpine
+    image: node:18
     container_name: xingxingbang-web
     working_dir: /app
     volumes:
