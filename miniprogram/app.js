@@ -1,7 +1,7 @@
 // app.js - 星星榜小程序
 App({
   globalData: {
-    apiBase: 'https://xingxingbang.ixx9527.xin',
+    apiBase: 'http://xingxingbang.ixx9527.xin',
     userInfo: null,
     token: null
   },
