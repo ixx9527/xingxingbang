@@ -123,12 +123,13 @@ const rules = {
 const handleRegister = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
-  
+
   loading.value = true
   try {
     const { confirmPassword, ...data } = form
     const res = await auth.register(data)
     localStorage.setItem('token', res.access_token)
+    localStorage.setItem('user', JSON.stringify({ username: form.username }))
     ElMessage.success('注册成功')
     router.push('/')
   } catch (err) {

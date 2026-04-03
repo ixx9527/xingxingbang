@@ -74,11 +74,12 @@ const rules = {
 const handleLogin = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
-  
+
   loading.value = true
   try {
     const res = await auth.login(form)
     localStorage.setItem('token', res.access_token)
+    localStorage.setItem('user', JSON.stringify({ username: form.username }))
     ElMessage.success('登录成功')
     router.push('/')
   } catch (err) {

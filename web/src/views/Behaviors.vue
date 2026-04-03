@@ -7,7 +7,7 @@
         添加行为
       </el-button>
     </div>
-    
+
     <el-tabs v-model="activeTab" style="margin-top: 20px">
       <el-tab-pane v-for="cat in categories" :key="cat.value" :label="cat.label" :name="cat.value">
         <el-table :data="filteredBehaviors" stripe>
@@ -25,14 +25,27 @@
             </template>
           </el-table-column>
           <el-table-column prop="category" label="分类" width="100" />
+          <el-table-column label="来源" width="120">
+            <template #default="{ row }">
+              <el-tag v-if="row.is_system" type="info" size="small">系统预设</el-tag>
+              <el-tag v-else-if="row.is_admin" type="warning" size="small">管理员预设</el-tag>
+              <el-tag v-else type="success" size="small">我的</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="description" label="描述" />
           <el-table-column label="操作" width="150">
             <template #default="{ row }">
-              <el-button size="small" @click="editBehavior(row)">编辑</el-button>
-              <el-button 
-                size="small" 
-                type="danger" 
-                :disabled="row.is_system"
+              <el-button
+                size="small"
+                :disabled="!canEdit(row)"
+                @click="editBehavior(row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                :disabled="!canDelete(row)"
                 @click="deleteBehavior(row)"
               >
                 删除
@@ -118,6 +131,32 @@ const rules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   points: [{ required: true, message: '请输入积分', trigger: 'blur' }],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }]
+}
+
+// 判断当前用户是否是管理员
+const isAdmin = computed(() => {
+  const userStr = localStorage.getItem('user')
+  if (!userStr) return false
+  try {
+    const user = JSON.parse(userStr)
+    return user.username === 'admin'
+  } catch {
+    return false
+  }
+})
+
+// 判断是否可以编辑
+const canEdit = (row) => {
+  if (row.is_system) return false  // 系统预设不能编辑
+  if (row.is_admin) return isAdmin.value  // 管理员预设只有管理员能编辑
+  return true  // 用户自己的行为可以编辑
+}
+
+// 判断是否可以删除
+const canDelete = (row) => {
+  if (row.is_system) return false  // 系统预设不能删除
+  if (row.is_admin) return isAdmin.value  // 管理员预设只有管理员能删除
+  return true  // 用户自己的行为可以删除
 }
 
 const filteredBehaviors = computed(() => {

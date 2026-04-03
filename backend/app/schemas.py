@@ -78,6 +78,8 @@ class BehaviorResponse(BaseModel):
     icon: Optional[str] = ""
     description: Optional[str] = ""
     is_system: bool
+    user_id: Optional[int] = None  # null=管理员预设，有值=用户私有
+    is_admin: bool = False  # 是否为管理员预设行为（方便前端判断）
 
     class Config:
         from_attributes = True

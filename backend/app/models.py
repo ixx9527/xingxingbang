@@ -45,9 +45,9 @@ class Child(Base):
 
 
 class Behavior(Base):
-    """行为模板表（系统预设 + 自定义）"""
+    """行为模板表（管理员预设 + 用户自定义）"""
     __tablename__ = "behaviors"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     points = Column(Float, default=0)
@@ -55,11 +55,13 @@ class Behavior(Base):
     icon = Column(String(10))
     description = Column(String(255))
     is_system = Column(Boolean, default=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # null=管理员预设，有值=用户私有
     created_at = Column(DateTime, default=datetime.now)
-    
+
     # 关系
     child_behaviors = relationship("ChildBehavior", back_populates="behavior")
     records = relationship("Record", back_populates="behavior")
+    owner = relationship("User")
 
 
 class ChildBehavior(Base):

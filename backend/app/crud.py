@@ -83,8 +83,14 @@ def delete_child(db: Session, child_id: int) -> bool:
 
 # ========== 行为相关 ==========
 
-def get_all_behaviors(db: Session, category: str = None) -> List[models.Behavior]:
+def get_all_behaviors(db: Session, user_id: int = None, category: str = None) -> List[models.Behavior]:
+    """获取行为列表：管理员预设(user_id=null) + 用户私有行为"""
     query = db.query(models.Behavior)
+    # 管理员预设行为(user_id=null) + 用户私有行为(user_id=当前用户)
+    if user_id:
+        query = query.filter(
+            (models.Behavior.user_id == None) | (models.Behavior.user_id == user_id)
+        )
     if category:
         query = query.filter(models.Behavior.category == category)
     return query.all()
@@ -94,15 +100,17 @@ def get_behavior_by_id(db: Session, behavior_id: int) -> Optional[models.Behavio
     return db.query(models.Behavior).filter(models.Behavior.id == behavior_id).first()
 
 
-def create_behavior(db: Session, name: str, points: float, category: str, 
-                    icon: str = "", description: str = "") -> models.Behavior:
+def create_behavior(db: Session, name: str, points: float, category: str,
+                    icon: str = "", description: str = "", user_id: int = None) -> models.Behavior:
+    """创建行为：普通用户创建私有行为(user_id=用户ID)，管理员可创建预设行为(user_id=null)"""
     behavior = models.Behavior(
         name=name,
         points=points,
         category=category,
         icon=icon,
         description=description,
-        is_system=False
+        is_system=False,
+        user_id=user_id
     )
     db.add(behavior)
     db.commit()
@@ -110,21 +118,41 @@ def create_behavior(db: Session, name: str, points: float, category: str,
     return behavior
 
 
-def update_behavior(db: Session, behavior_id: int, **kwargs) -> Optional[models.Behavior]:
+def update_behavior(db: Session, behavior_id: int, user_id: int = None, is_admin: bool = False, **kwargs) -> Optional[models.Behavior]:
+    """更新行为：只能编辑自己的私有行为，管理员可编辑预设行为"""
     behavior = db.query(models.Behavior).filter(models.Behavior.id == behavior_id).first()
-    if not behavior or behavior.is_system:
+    if not behavior:
+        return None
+    # 系统预设行为(is_system=True)不能编辑
+    if behavior.is_system:
+        return None
+    # 管理员预设行为(user_id=null)：只有管理员可以编辑
+    if behavior.user_id is None and not is_admin:
+        return None
+    # 用户私有行为：只有本人可以编辑
+    if behavior.user_id is not None and behavior.user_id != user_id:
         return None
     for key, value in kwargs.items():
-        if hasattr(behavior, key):
+        if hasattr(behavior, key) and value is not None:
             setattr(behavior, key, value)
     db.commit()
     db.refresh(behavior)
     return behavior
 
 
-def delete_behavior(db: Session, behavior_id: int) -> bool:
+def delete_behavior(db: Session, behavior_id: int, user_id: int = None, is_admin: bool = False) -> bool:
+    """删除行为：只能删除自己的私有行为，管理员可删除预设行为"""
     behavior = db.query(models.Behavior).filter(models.Behavior.id == behavior_id).first()
-    if not behavior or behavior.is_system:
+    if not behavior:
+        return False
+    # 系统预设行为(is_system=True)不能删除
+    if behavior.is_system:
+        return False
+    # 管理员预设行为(user_id=null)：只有管理员可以删除
+    if behavior.user_id is None and not is_admin:
+        return False
+    # 用户私有行为：只有本人可以删除
+    if behavior.user_id is not None and behavior.user_id != user_id:
         return False
     db.delete(behavior)
     db.commit()

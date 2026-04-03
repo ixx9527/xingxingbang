@@ -209,11 +209,33 @@ def get_child(
 
 # ========== 行为接口 ==========
 
+def is_admin(current_user: dict) -> bool:
+    """判断是否为管理员"""
+    return current_user.get("username") == "admin"
+
+def behavior_to_response(behavior: models.Behavior) -> schemas.BehaviorResponse:
+    """转换行为模型为响应，添加 is_admin 字段"""
+    return schemas.BehaviorResponse(
+        id=behavior.id,
+        name=behavior.name,
+        points=behavior.points,
+        category=behavior.category,
+        icon=behavior.icon,
+        description=behavior.description,
+        is_system=behavior.is_system,
+        user_id=behavior.user_id,
+        is_admin=behavior.user_id is None  # user_id=null 表示管理员预设
+    )
+
 @app.get("/api/behaviors", response_model=List[schemas.BehaviorResponse])
-def list_behaviors(category: str = None, db: Session = Depends(get_db)):
-    """获取行为列表"""
-    behaviors = crud.get_all_behaviors(db, category)
-    return behaviors
+def list_behaviors(
+    category: str = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """获取行为列表：管理员预设 + 用户私有行为"""
+    behaviors = crud.get_all_behaviors(db, current_user["id"], category)
+    return [behavior_to_response(b) for b in behaviors]
 
 
 @app.post("/api/behaviors", response_model=schemas.BehaviorResponse)
@@ -222,10 +244,13 @@ def create_behavior(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """创建自定义行为"""
-    return crud.create_behavior(
-        db, req.name, req.points, req.category, req.icon, req.description
+    """创建行为：普通用户创建私有行为，管理员可创建预设行为"""
+    # 管理员创建的预设行为 user_id=null，普通用户创建的私有行为 user_id=当前用户
+    user_id = None if is_admin(current_user) else current_user["id"]
+    behavior = crud.create_behavior(
+        db, req.name, req.points, req.category, req.icon, req.description, user_id
     )
+    return behavior_to_response(behavior)
 
 
 @app.put("/api/behaviors/{behavior_id}", response_model=schemas.BehaviorResponse)
@@ -235,11 +260,16 @@ def update_behavior(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """更新行为"""
-    behavior = crud.update_behavior(db, behavior_id, **req.dict())
+    """更新行为：只能编辑自己的私有行为，管理员可编辑预设行为"""
+    behavior = crud.update_behavior(
+        db, behavior_id,
+        user_id=current_user["id"],
+        is_admin=is_admin(current_user),
+        **req.dict()
+    )
     if not behavior:
-        raise HTTPException(status_code=400, detail="系统预设行为不能编辑")
-    return behavior
+        raise HTTPException(status_code=400, detail="无法编辑此行为（系统预设或非本人创建）")
+    return behavior_to_response(behavior)
 
 
 @app.delete("/api/behaviors/{behavior_id}")
@@ -248,9 +278,13 @@ def delete_behavior(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """删除行为"""
-    if not crud.delete_behavior(db, behavior_id):
-        raise HTTPException(status_code=400, detail="系统预设行为不能删除")
+    """删除行为：只能删除自己的私有行为，管理员可删除预设行为"""
+    if not crud.delete_behavior(
+        db, behavior_id,
+        user_id=current_user["id"],
+        is_admin=is_admin(current_user)
+    ):
+        raise HTTPException(status_code=400, detail="无法删除此行为（系统预设或非本人创建）")
     return {"message": "删除成功"}
 
 
