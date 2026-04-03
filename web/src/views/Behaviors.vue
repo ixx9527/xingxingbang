@@ -17,7 +17,13 @@
             </template>
           </el-table-column>
           <el-table-column prop="name" label="行为名称" />
-          <el-table-column prop="points" label="积分" width="80" />
+          <el-table-column prop="points" label="积分" width="100">
+            <template #default="{ row }">
+              <span :style="{ color: row.points < 0 ? '#F56C6C' : '#67C23A' }">
+                {{ row.points > 0 ? '+' + row.points : row.points }}
+              </span>
+            </template>
+          </el-table-column>
           <el-table-column prop="category" label="分类" width="100" />
           <el-table-column prop="description" label="描述" />
           <el-table-column label="操作" width="150">
@@ -43,8 +49,17 @@
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="行为名称" />
         </el-form-item>
+        <el-form-item label="类型" prop="pointsType">
+          <el-radio-group v-model="form.pointsType">
+            <el-radio value="add">加分</el-radio>
+            <el-radio value="deduct">扣分</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="积分" prop="points">
-          <el-input-number v-model="form.points" :min="0" :max="100" />
+          <el-input-number v-model="form.points" :min="1" :max="100" />
+          <span style="margin-left: 10px; color: #909399">
+            {{ form.pointsType === 'add' ? '加分项' : '扣分项，将扣除' }} {{ form.points }} 分
+          </span>
         </el-form-item>
         <el-form-item label="分类" prop="category">
           <el-select v-model="form.category" placeholder="选择分类">
@@ -93,6 +108,7 @@ const categories = [
 const form = reactive({
   name: '',
   points: 10,
+  pointsType: 'add',
   category: 'other',
   icon: '',
   description: ''
@@ -120,28 +136,36 @@ const loadBehaviors = async () => {
 const showAddDialog = () => {
   isEdit.value = false
   editingId.value = null
-  Object.assign(form, { name: '', points: 10, category: 'other', icon: '', description: '' })
+  Object.assign(form, { name: '', points: 10, pointsType: 'add', category: 'other', icon: '', description: '' })
   dialogVisible.value = true
 }
 
 const editBehavior = (row) => {
   isEdit.value = true
   editingId.value = row.id
-  Object.assign(form, row)
+  Object.assign(form, {
+    ...row,
+    points: Math.abs(row.points),
+    pointsType: row.points >= 0 ? 'add' : 'deduct'
+  })
   dialogVisible.value = true
 }
 
 const handleSubmit = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
-  
+
   loading.value = true
   try {
+    const submitData = {
+      ...form,
+      points: form.pointsType === 'deduct' ? -form.points : form.points
+    }
     if (isEdit.value) {
-      await behaviorsApi.update(editingId.value, form)
+      await behaviorsApi.update(editingId.value, submitData)
       ElMessage.success('更新成功')
     } else {
-      await behaviorsApi.create(form)
+      await behaviorsApi.create(submitData)
       ElMessage.success('添加成功')
     }
     dialogVisible.value = false
