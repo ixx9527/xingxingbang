@@ -55,7 +55,8 @@ export const behaviors = {
   list: (category) => api.get('/behaviors', { params: { category } }),
   create: (data) => api.post('/behaviors', data),
   update: (id, data) => api.put(`/behaviors/${id}`, data),
-  delete: (id) => api.delete(`/behaviors/${id}`)
+  delete: (id) => api.delete(`/behaviors/${id}`),
+  reset: () => api.post('/behaviors/reset')
 }
 
 // 打卡记录

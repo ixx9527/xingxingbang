@@ -278,14 +278,26 @@ def delete_behavior(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """删除行为：只能删除自己的私有行为，管理员可删除预设行为"""
+    """删除行为：普通用户和管理员都能删除预设行为和自己的私有行为"""
     if not crud.delete_behavior(
         db, behavior_id,
         user_id=current_user["id"],
         is_admin=is_admin(current_user)
     ):
-        raise HTTPException(status_code=400, detail="无法删除此行为（系统预设或非本人创建）")
+        raise HTTPException(status_code=400, detail="无法删除此行为（非本人创建）")
     return {"message": "删除成功"}
+
+
+@app.post("/api/behaviors/reset")
+def reset_behaviors(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """重置预设行为到默认状态（仅管理员）"""
+    if not is_admin(current_user):
+        raise HTTPException(status_code=403, detail="只有管理员可以执行此操作")
+    count = crud.reset_behaviors(db)
+    return {"message": f"已重置 {count} 个预设行为"}
 
 
 # ========== 打卡接口 ==========

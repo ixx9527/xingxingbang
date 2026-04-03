@@ -2,10 +2,16 @@
   <div class="behaviors-page">
     <div class="header">
       <h2>行为管理</h2>
-      <el-button type="primary" @click="showAddDialog">
-        <el-icon><Plus /></el-icon>
-        添加行为
-      </el-button>
+      <div class="header-actions">
+        <el-button v-if="isAdmin" type="warning" @click="resetBehaviors">
+          <el-icon><RefreshRight /></el-icon>
+          重置预设
+        </el-button>
+        <el-button type="primary" @click="showAddDialog">
+          <el-icon><Plus /></el-icon>
+          添加行为
+        </el-button>
+      </div>
     </div>
 
     <el-tabs v-model="activeTab" style="margin-top: 20px">
@@ -27,8 +33,7 @@
           <el-table-column prop="category" label="分类" width="100" />
           <el-table-column label="来源" width="120">
             <template #default="{ row }">
-              <el-tag v-if="row.is_system" type="info" size="small">系统预设</el-tag>
-              <el-tag v-else-if="row.is_admin" type="warning" size="small">管理员预设</el-tag>
+              <el-tag v-if="row.is_admin" type="warning" size="small">预设</el-tag>
               <el-tag v-else type="success" size="small">我的</el-tag>
             </template>
           </el-table-column>
@@ -99,7 +104,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, RefreshRight } from '@element-plus/icons-vue'
 import { behaviors as behaviorsApi } from '../api'
 
 const behaviors = ref([])
@@ -145,18 +150,16 @@ const isAdmin = computed(() => {
   }
 })
 
-// 判断是否可以编辑
+// 判断是否可以编辑：管理员可编辑所有，普通用户只能编辑自己的
 const canEdit = (row) => {
-  if (row.is_system) return false  // 系统预设不能编辑
-  if (row.is_admin) return isAdmin.value  // 管理员预设只有管理员能编辑
-  return true  // 用户自己的行为可以编辑
+  if (isAdmin.value) return true
+  return !row.is_admin  // 普通用户只能编辑自己的私有行为
 }
 
-// 判断是否可以删除
+// 判断是否可以删除：管理员和普通用户都能删除
 const canDelete = (row) => {
-  if (row.is_system) return false  // 系统预设不能删除
-  if (row.is_admin) return isAdmin.value  // 管理员预设只有管理员能删除
-  return true  // 用户自己的行为可以删除
+  if (isAdmin.value) return true
+  return !row.is_admin  // 普通用户不能删除别人的私有行为（但可以删除预设）
 }
 
 const filteredBehaviors = computed(() => {
@@ -227,6 +230,19 @@ const deleteBehavior = async (row) => {
   }
 }
 
+const resetBehaviors = async () => {
+  try {
+    await ElMessageBox.confirm('确定要重置预设行为吗？这将恢复所有默认行为，但不会影响您自定义的行为。', '提示', { type: 'warning' })
+    const res = await behaviorsApi.reset()
+    ElMessage.success(res.message)
+    loadBehaviors()
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error(err.response?.data?.detail || '重置失败')
+    }
+  }
+}
+
 onMounted(loadBehaviors)
 </script>
 
@@ -239,5 +255,10 @@ onMounted(loadBehaviors)
 
 .header h2 {
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
 }
 </style>

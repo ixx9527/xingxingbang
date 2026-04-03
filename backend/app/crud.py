@@ -119,19 +119,23 @@ def create_behavior(db: Session, name: str, points: float, category: str,
 
 
 def update_behavior(db: Session, behavior_id: int, user_id: int = None, is_admin: bool = False, **kwargs) -> Optional[models.Behavior]:
-    """更新行为：只能编辑自己的私有行为，管理员可编辑预设行为"""
+    """更新行为：普通用户只能编辑自己的私有行为，管理员可编辑所有行为"""
     behavior = db.query(models.Behavior).filter(models.Behavior.id == behavior_id).first()
     if not behavior:
         return None
-    # 系统预设行为(is_system=True)不能编辑
-    if behavior.is_system:
-        return None
-    # 管理员预设行为(user_id=null)：只有管理员可以编辑
-    if behavior.user_id is None and not is_admin:
-        return None
-    # 用户私有行为：只有本人可以编辑
-    if behavior.user_id is not None and behavior.user_id != user_id:
-        return None
+    # 管理员可以编辑任何行为
+    if is_admin:
+        for key, value in kwargs.items():
+            if hasattr(behavior, key) and value is not None:
+                setattr(behavior, key, value)
+        db.commit()
+        db.refresh(behavior)
+        return behavior
+    # 普通用户：只能编辑自己的私有行为(user_id=当前用户)
+    if behavior.user_id is None:
+        return None  # 不能编辑预设行为
+    if behavior.user_id != user_id:
+        return None  # 不能编辑他人的行为
     for key, value in kwargs.items():
         if hasattr(behavior, key) and value is not None:
             setattr(behavior, key, value)
@@ -141,22 +145,34 @@ def update_behavior(db: Session, behavior_id: int, user_id: int = None, is_admin
 
 
 def delete_behavior(db: Session, behavior_id: int, user_id: int = None, is_admin: bool = False) -> bool:
-    """删除行为：只能删除自己的私有行为，管理员可删除预设行为"""
+    """删除行为：普通用户和管理员都能删除预设行为和自己的私有行为"""
     behavior = db.query(models.Behavior).filter(models.Behavior.id == behavior_id).first()
     if not behavior:
         return False
-    # 系统预设行为(is_system=True)不能删除
-    if behavior.is_system:
-        return False
-    # 管理员预设行为(user_id=null)：只有管理员可以删除
-    if behavior.user_id is None and not is_admin:
-        return False
-    # 用户私有行为：只有本人可以删除
+    # 管理员可以删除任何行为
+    if is_admin:
+        db.delete(behavior)
+        db.commit()
+        return True
+    # 普通用户：可以删除预设行为(user_id=null)和自己的私有行为
     if behavior.user_id is not None and behavior.user_id != user_id:
-        return False
+        return False  # 不能删除他人的私有行为
     db.delete(behavior)
     db.commit()
     return True
+
+
+def reset_behaviors(db: Session) -> int:
+    """重置预设行为到默认状态，返回重置的数量"""
+    # 删除所有预设行为(user_id=null)
+    deleted = db.query(models.Behavior).filter(models.Behavior.user_id == None).delete()
+    db.commit()
+    # 重新创建默认行为
+    for b in DEFAULT_BEHAVIORS:
+        behavior = models.Behavior(**b, is_system=True, user_id=None)
+        db.add(behavior)
+    db.commit()
+    return deleted + len(DEFAULT_BEHAVIORS)
 
 
 # ========== 打卡记录 ==========
