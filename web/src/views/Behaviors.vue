@@ -103,7 +103,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { behaviors as behaviorsApi } from '../api'
 
 const behaviors = ref([])
-const activeTab = ref('学习')
+const activeTab = ref('all')
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const loading = ref(false)
@@ -111,6 +111,7 @@ const formRef = ref()
 const editingId = ref(null)
 
 const categories = [
+  { label: '全部', value: 'all' },
   { label: '学习', value: '学习' },
   { label: '生活', value: '生活' },
   { label: '运动', value: '运动' },
