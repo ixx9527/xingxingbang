@@ -103,7 +103,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { behaviors as behaviorsApi } from '../api'
 
 const behaviors = ref([])
-const activeTab = ref('study')
+const activeTab = ref('学习')
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const loading = ref(false)
@@ -111,18 +111,17 @@ const formRef = ref()
 const editingId = ref(null)
 
 const categories = [
-  { label: '学习', value: 'study' },
-  { label: '生活', value: 'life' },
-  { label: '运动', value: 'sport' },
-  { label: '艺术', value: 'art' },
-  { label: '其他', value: 'other' }
+  { label: '学习', value: '学习' },
+  { label: '生活习惯', value: '生活习惯' },
+  { label: '运动', value: '运动' },
+  { label: '其他', value: '其他' }
 ]
 
 const form = reactive({
   name: '',
   points: 10,
   pointsType: 'add',
-  category: 'other',
+  category: '学习',
   icon: '',
   description: ''
 })
@@ -175,7 +174,7 @@ const loadBehaviors = async () => {
 const showAddDialog = () => {
   isEdit.value = false
   editingId.value = null
-  Object.assign(form, { name: '', points: 10, pointsType: 'add', category: 'other', icon: '', description: '' })
+  Object.assign(form, { name: '', points: 10, pointsType: 'add', category: '学习', icon: '', description: '' })
   dialogVisible.value = true
 }
 
