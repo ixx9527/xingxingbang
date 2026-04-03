@@ -112,7 +112,7 @@ const editingId = ref(null)
 
 const categories = [
   { label: '学习', value: '学习' },
-  { label: '生活习惯', value: '生活习惯' },
+  { label: '生活', value: '生活' },
   { label: '运动', value: '运动' },
   { label: '其他', value: '其他' }
 ]
