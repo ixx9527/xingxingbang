@@ -1,7 +1,7 @@
 // app.js - 星星榜小程序
 App({
   globalData: {
-    apiBase: 'http://localhost:8000',  // 改为你的服务器地址
+    apiBase: 'https://xingxingbang.ixx9527.xin',
     userInfo: null,
     token: null
   },

@@ -75,10 +75,10 @@ class BehaviorResponse(BaseModel):
     name: str
     points: float
     category: str
-    icon: str
-    description: str
+    icon: Optional[str] = ""
+    description: Optional[str] = ""
     is_system: bool
-    
+
     class Config:
         from_attributes = True
 
