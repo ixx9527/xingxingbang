@@ -1067,7 +1067,7 @@ Authorization: Bearer <token>
 **请求**
 
 ```
-POST /user/change-password
+POST /api/user/change-password
 ```
 
 **请求参数 (Body)**

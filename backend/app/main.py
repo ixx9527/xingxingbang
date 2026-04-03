@@ -374,7 +374,7 @@ def get_child_level(
 
 # ========== 运行入口 ==========
 
-@app.post("/user/change-password")
+@app.post("/api/user/change-password")
 def change_password(
     req: dict,
     db: Session = Depends(get_db),
