@@ -37,7 +37,7 @@
         <div class="header-right">
           <span class="user-info">
             <span class="nickname">{{ userInfo.nickname || userInfo.username }}</span>
-            <span class="user-id">ID: {{ userInfo.id }}</span>
+            <span class="user-id">用户名: {{ userInfo.username }}</span>
           </span>
           <el-button type="warning" size="small" @click="showPasswordDialog = true">
             修改密码
