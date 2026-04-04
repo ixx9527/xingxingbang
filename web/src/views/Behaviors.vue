@@ -30,6 +30,12 @@
               </span>
             </template>
           </el-table-column>
+          <el-table-column label="类型" width="100">
+            <template #default="{ row }">
+              <el-tag v-if="row.is_numeric" type="primary" size="small">数值类</el-tag>
+              <el-tag v-else type="info" size="small">普通</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="category" label="分类" width="100" />
           <el-table-column label="来源" width="120">
             <template #default="{ row }">
@@ -67,6 +73,21 @@
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="行为名称" />
         </el-form-item>
+        <el-form-item label="数值类">
+          <el-switch v-model="form.is_numeric" />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px">
+            {{ form.is_numeric ? '用户打卡时可输入实际数值，积分按比例计算' : '固定积分' }}
+          </span>
+        </el-form-item>
+        <el-form-item v-if="form.is_numeric" label="模板名称" prop="name_template">
+          <el-input v-model="form.name_template" placeholder="如：阅读{n}分钟，{n}为占位符" />
+        </el-form-item>
+        <el-form-item v-if="form.is_numeric" label="默认数值" prop="default_n">
+          <el-input-number v-model="form.default_n" :min="1" :max="1000" />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px">
+            {{ form.name_template ? form.name_template.replace('{n}', form.default_n) : '' }}
+          </span>
+        </el-form-item>
         <el-form-item label="类型" prop="pointsType">
           <el-radio-group v-model="form.pointsType">
             <el-radio value="add">加分</el-radio>
@@ -77,6 +98,7 @@
           <el-input-number v-model="form.points" :min="1" :max="100" />
           <span style="margin-left: 10px; color: #909399">
             {{ form.pointsType === 'add' ? '加分项' : '扣分项，将扣除' }} {{ form.points }} 分
+            {{ form.is_numeric ? `（对应默认数值 ${form.default_n || 1}）` : '' }}
           </span>
         </el-form-item>
         <el-form-item label="分类" prop="category">
@@ -85,7 +107,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="图标">
-          <el-input v-model="form.icon" placeholder=" emoji 如 ⭐" />
+          <el-input v-model="form.icon" placeholder="emoji 如 ⭐" />
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" rows="3" />
@@ -129,7 +151,10 @@ const form = reactive({
   pointsType: 'add',
   category: '学习',
   icon: '',
-  description: ''
+  description: '',
+  is_numeric: false,
+  name_template: '',
+  default_n: 1
 })
 
 const rules = {
@@ -178,7 +203,17 @@ const loadBehaviors = async () => {
 const showAddDialog = () => {
   isEdit.value = false
   editingId.value = null
-  Object.assign(form, { name: '', points: 10, pointsType: 'add', category: '学习', icon: '', description: '' })
+  Object.assign(form, {
+    name: '',
+    points: 10,
+    pointsType: 'add',
+    category: '学习',
+    icon: '',
+    description: '',
+    is_numeric: false,
+    name_template: '',
+    default_n: 1
+  })
   dialogVisible.value = true
 }
 
@@ -188,7 +223,10 @@ const editBehavior = (row) => {
   Object.assign(form, {
     ...row,
     points: Math.abs(row.points),
-    pointsType: row.points >= 0 ? 'add' : 'deduct'
+    pointsType: row.points >= 0 ? 'add' : 'deduct',
+    is_numeric: row.is_numeric || false,
+    name_template: row.name_template || '',
+    default_n: row.default_n || 1
   })
   dialogVisible.value = true
 }
@@ -200,8 +238,14 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const submitData = {
-      ...form,
-      points: form.pointsType === 'deduct' ? -form.points : form.points
+      name: form.name,
+      points: form.pointsType === 'deduct' ? -form.points : form.points,
+      category: form.category,
+      icon: form.icon,
+      description: form.description,
+      // 数值类任务字段
+      name_template: form.is_numeric ? form.name_template : null,
+      default_n: form.is_numeric ? form.default_n : null
     }
     if (isEdit.value) {
       await behaviorsApi.update(editingId.value, submitData)
