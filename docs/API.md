@@ -12,6 +12,9 @@
 - [API 列表](#api-列表)
   - [健康检查](#健康检查)
   - [认证接口](#认证接口)
+    - [用户注册](#用户注册)
+    - [用户登录](#用户登录)
+    - [刷新 Token](#刷新-token)
   - [邀请码接口](#邀请码接口)
   - [孩子接口](#孩子接口)
   - [行为接口](#行为接口)
@@ -52,12 +55,18 @@ Authorization: Bearer <your_access_token>
 
 ### Token 获取
 
-通过 [登录](#用户登录) 或 [注册](#用户注册) 接口获取 access_token。
+通过 [登录](#用户登录) 或 [注册](#用户注册) 接口获取 access_token 和 refresh_token。
 
 ### Token 有效期
 
-- 默认有效期：30 分钟
-- 过期后需重新登录
+| Token 类型 | 有效期 | 说明 |
+|------------|--------|------|
+| access_token | 30 天 | 用于接口认证 |
+| refresh_token | 7 天 | 用于刷新 access_token |
+
+### Token 刷新
+
+当 access_token 过期时，可使用 refresh_token 调用 [刷新 Token](#刷新-token) 接口获取新的 token。
 
 ---
 
@@ -136,6 +145,7 @@ POST /api/auth/register
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer"
 }
 ```
@@ -144,7 +154,8 @@ POST /api/auth/register
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| access_token | string | JWT 访问令牌 |
+| access_token | string | JWT 访问令牌（有效期 30 天） |
+| refresh_token | string | JWT 刷新令牌（有效期 7 天） |
 | token_type | string | Token 类型 (bearer) |
 
 **错误响应**
@@ -188,6 +199,7 @@ POST /api/auth/login
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer"
 }
 ```
@@ -196,7 +208,8 @@ POST /api/auth/login
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| access_token | string | JWT 访问令牌 |
+| access_token | string | JWT 访问令牌（有效期 30 天） |
+| refresh_token | string | JWT 刷新令牌（有效期 7 天） |
 | token_type | string | Token 类型 (bearer) |
 
 **错误响应**
@@ -204,6 +217,58 @@ POST /api/auth/login
 | 状态码 | 说明 |
 |--------|------|
 | 401 | 用户名或密码错误 |
+
+---
+
+#### 刷新 Token
+
+使用 refresh_token 获取新的 access_token 和 refresh_token。
+
+**请求**
+
+```
+POST /api/auth/refresh
+```
+
+**请求参数 (Body)**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| refresh_token | string | 是 | 刷新令牌 |
+
+**请求示例**
+
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**请求头：** 无
+
+**响应示例**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+**响应字段**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| access_token | string | 新的 JWT 访问令牌（有效期 30 天） |
+| refresh_token | string | 新的 JWT 刷新令牌（有效期 7 天） |
+| token_type | string | Token 类型 (bearer) |
+
+**错误响应**
+
+| 状态码 | 说明 |
+|--------|------|
+| 401 | 无效的刷新令牌 / 用户不存在 |
 
 ---
 

@@ -14,12 +14,38 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// 响应拦截 - 处理错误
+// 响应拦截 - 处理错误和自动刷新 token
 api.interceptors.response.use(
   res => res.data,
-  err => {
+  async err => {
+    const originalRequest = err.config
+
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+
+      const refreshToken = localStorage.getItem('refresh_token')
+      if (refreshToken) {
+        try {
+          const res = await axios.post('/api/auth/refresh', {
+            refresh_token: refreshToken
+          })
+          localStorage.setItem('token', res.data.access_token)
+          localStorage.setItem('refresh_token', res.data.refresh_token)
+          originalRequest.headers.Authorization = `Bearer ${res.data.access_token}`
+          return api(originalRequest)
+        } catch (refreshErr) {
+          // 刷新失败，清除登录状态
+          localStorage.removeItem('token')
+          localStorage.removeItem('refresh_token')
+          window.location.href = '/login'
+          return Promise.reject(refreshErr)
+        }
+      }
+    }
+
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
+      localStorage.removeItem('refresh_token')
       window.location.href = '/login'
     }
     return Promise.reject(err)
@@ -35,7 +61,8 @@ export const user = {
 // 认证
 export const auth = {
   login: (data) => api.post('/auth/login', data),
-  register: (data) => api.post('/auth/register', data)
+  register: (data) => api.post('/auth/register', data),
+  refresh: (data) => api.post('/auth/refresh', data)
 }
 
 // 邀请码

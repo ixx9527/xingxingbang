@@ -79,6 +79,7 @@ const handleLogin = async () => {
   try {
     const res = await auth.login(form)
     localStorage.setItem('token', res.access_token)
+    localStorage.setItem('refresh_token', res.refresh_token)
     localStorage.setItem('user', JSON.stringify({ username: form.username }))
     ElMessage.success('登录成功')
     router.push('/')

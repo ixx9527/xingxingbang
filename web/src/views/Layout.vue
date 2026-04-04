@@ -145,6 +145,7 @@ onMounted(async () => {
 
 const handleLogout = () => {
   localStorage.removeItem('token')
+  localStorage.removeItem('refresh_token')
   localStorage.removeItem('username')
   router.push('/login')
 }

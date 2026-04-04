@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     
     # 安全配置
     SECRET_KEY: str = "changeme-secret-key-in-production"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7天
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30天
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 刷新token有效期7天
     
     # 数据库
     DATABASE_URL: str = "sqlite:///./data/xingxingbang.db"

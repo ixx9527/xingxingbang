@@ -11,8 +11,8 @@ from app.config import settings
 from app.database import get_db, create_tables
 from app import models, crud, schemas
 from app.security import (
-    verify_password, get_password_hash, create_access_token, 
-    verify_token, get_current_user
+    verify_password, get_password_hash, create_access_token,
+    create_refresh_token, verify_token, get_current_user
 )
 
 # 创建应用
@@ -75,9 +75,10 @@ def register(req: schemas.UserCreate, db: Session = Depends(get_db)):
     crud.use_invite_code(db, invite)
     
     # 生成 Token
-    token = create_access_token({"sub": str(user.id), "username": user.username})
-    
-    return schemas.Token(access_token=token)
+    access_token = create_access_token({"sub": str(user.id), "username": user.username})
+    refresh_token = create_refresh_token({"sub": str(user.id), "username": user.username})
+
+    return schemas.Token(access_token=access_token, refresh_token=refresh_token)
 
 
 @app.post("/api/auth/login", response_model=schemas.Token)
@@ -89,9 +90,33 @@ def login(req: schemas.UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误"
         )
-    
-    token = create_access_token({"sub": str(user.id), "username": user.username})
-    return schemas.Token(access_token=token)
+
+    access_token = create_access_token({"sub": str(user.id), "username": user.username})
+    refresh_token = create_refresh_token({"sub": str(user.id), "username": user.username})
+    return schemas.Token(access_token=access_token, refresh_token=refresh_token)
+
+
+@app.post("/api/auth/refresh", response_model=schemas.Token)
+def refresh_token(req: schemas.TokenRefresh, db: Session = Depends(get_db)):
+    """刷新 Token"""
+    payload = verify_token(req.refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效的刷新令牌"
+        )
+
+    user_id = payload.get("sub")
+    user = crud.get_user_by_id(db, int(user_id))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户不存在"
+        )
+
+    access_token = create_access_token({"sub": str(user.id), "username": user.username})
+    refresh_token = create_refresh_token({"sub": str(user.id), "username": user.username})
+    return schemas.Token(access_token=access_token, refresh_token=refresh_token)
 
 
 # ========== 邀请码接口 ==========

@@ -129,6 +129,7 @@ const handleRegister = async () => {
     const { confirmPassword, ...data } = form
     const res = await auth.register(data)
     localStorage.setItem('token', res.access_token)
+    localStorage.setItem('refresh_token', res.refresh_token)
     localStorage.setItem('user', JSON.stringify({ username: form.username }))
     ElMessage.success('注册成功')
     router.push('/')
