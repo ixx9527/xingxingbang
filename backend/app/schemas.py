@@ -68,6 +68,8 @@ class BehaviorCreate(BaseModel):
     category: str
     icon: str = ""
     description: str = ""
+    name_template: Optional[str] = None  # 模板名称，如"阅读{n}分钟"
+    default_n: Optional[float] = None  # 默认数值，如30
 
 
 class BehaviorResponse(BaseModel):
@@ -80,6 +82,10 @@ class BehaviorResponse(BaseModel):
     is_system: bool
     user_id: Optional[int] = None  # null=管理员预设，有值=用户私有
     is_admin: bool = False  # 是否为管理员预设行为（方便前端判断）
+    # 数值类任务
+    name_template: Optional[str] = None  # 模板名称，如"阅读{n}分钟"，null表示非数值类
+    default_n: Optional[float] = None  # 默认数值，如30，null表示非数值类
+    is_numeric: bool = False  # 是否为数值类任务（方便前端判断）
 
     class Config:
         from_attributes = True
@@ -105,9 +111,10 @@ class ChildBehaviorResponse(BaseModel):
 
 class RecordCreate(BaseModel):
     behavior_id: int
-    points: float
+    points: float  # 可选，传 actual_value 时后端会自动计算
     note: str = ""
     record_type: str = "manual"
+    actual_value: Optional[float] = None  # 数值类任务的实际值，如实际阅读了20分钟
 
 
 class RecordResponse(BaseModel):

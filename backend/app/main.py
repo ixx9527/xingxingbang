@@ -214,7 +214,7 @@ def is_admin(current_user: dict) -> bool:
     return current_user.get("username") == "admin"
 
 def behavior_to_response(behavior: models.Behavior) -> schemas.BehaviorResponse:
-    """转换行为模型为响应，添加 is_admin 字段"""
+    """转换行为模型为响应，添加 is_admin 和 is_numeric 字段"""
     return schemas.BehaviorResponse(
         id=behavior.id,
         name=behavior.name,
@@ -224,7 +224,10 @@ def behavior_to_response(behavior: models.Behavior) -> schemas.BehaviorResponse:
         description=behavior.description,
         is_system=behavior.is_system,
         user_id=behavior.user_id,
-        is_admin=behavior.user_id is None  # user_id=null 表示管理员预设
+        is_admin=behavior.user_id is None,  # user_id=null 表示管理员预设
+        name_template=behavior.name_template,
+        default_n=behavior.default_n,
+        is_numeric=behavior.name_template is not None  # 有模板表示数值类任务
     )
 
 @app.get("/api/behaviors", response_model=List[schemas.BehaviorResponse])
@@ -239,7 +242,7 @@ def list_behaviors(
 
 
 @app.post("/api/behaviors", response_model=schemas.BehaviorResponse)
-def create_behavior(
+def create_behavior_endpoint(
     req: schemas.BehaviorCreate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -248,7 +251,8 @@ def create_behavior(
     # 管理员创建的预设行为 user_id=null，普通用户创建的私有行为 user_id=当前用户
     user_id = None if is_admin(current_user) else current_user["id"]
     behavior = crud.create_behavior(
-        db, req.name, req.points, req.category, req.icon, req.description, user_id
+        db, req.name, req.points, req.category, req.icon, req.description, user_id,
+        req.name_template, req.default_n
     )
     return behavior_to_response(behavior)
 
@@ -314,11 +318,17 @@ def create_record(
     behavior = crud.get_behavior_by_id(db, req.behavior_id)
     if not behavior:
         raise HTTPException(status_code=404, detail="行为不存在")
-    
+
+    # 计算积分
+    points = req.points
+    if behavior.name_template and behavior.default_n and req.actual_value is not None:
+        # 数值类任务：根据实际值按比例计算积分
+        points = round((req.actual_value / behavior.default_n) * behavior.points, 1)
+
     record = crud.create_record(
-        db, child_id, req.behavior_id, req.points, req.note, req.record_type
+        db, child_id, req.behavior_id, points, req.note, req.record_type
     )
-    
+
     return schemas.RecordResponse(
         id=record.id,
         behavior_id=behavior.id,
@@ -371,10 +381,14 @@ def get_scores(
     """获取积分统计"""
     child = get_child_or_404(db, child_id, current_user)
     
-    today_points = crud.get_today_points(db, child_id)
-    total_points = crud.get_total_points(db, child_id)
+    today_points = round(crud.get_today_points(db, child_id), 1)
+    total_points = round(crud.get_total_points(db, child_id), 1)
     streak_days = crud.get_streak_days(db, child_id)
     behavior_stats = crud.get_behavior_stats(db, child_id)
+
+    # 修复浮点数精度问题
+    for stat in behavior_stats:
+        stat["points"] = round(stat["points"], 1)
     
     return schemas.ScoreStats(
         today_points=today_points,

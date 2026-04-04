@@ -19,6 +19,8 @@
   - [积分统计接口](#积分统计接口)
   - [等级接口](#等级接口)
   - [用户接口](#用户接口)
+- [附录](#附录)
+- [数值类任务](#数值类任务)
 
 ---
 
@@ -563,12 +565,15 @@ GET /api/behaviors?category=学习
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | integer | 行为 ID |
-| name | string | 行为名称 |
+| name | string | 行为名称（显示名称，如"阅读30分钟"） |
 | points | float | 基础分值 |
 | category | string | 分类 |
 | icon | string | 图标 |
 | description | string | 描述 |
 | is_system | boolean | 是否系统预设（系统预设不能删除/编辑） |
+| name_template | string | 模板名称，如"阅读{n}分钟"，null 表示非数值类任务 |
+| default_n | float | 默认数值，如 30，null 表示非数值类任务 |
+| is_numeric | boolean | 是否为数值类任务（方便前端判断） |
 
 ---
 
@@ -586,11 +591,13 @@ POST /api/behaviors
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| name | string | 是 | 行为名称 |
-| points | float | 是 | 分值 |
+| name | string | 是 | 行为名称（显示名称，如"阅读30分钟"） |
+| points | float | 是 | 基础分值 |
 | category | string | 是 | 分类 |
 | icon | string | 否 | 图标 |
 | description | string | 否 | 描述 |
+| name_template | string | 否 | 模板名称，如"阅读{n}分钟"，设置后为数值类任务 |
+| default_n | float | 否 | 默认数值，如 30，与 name_template 配合使用 |
 
 **请求示例**
 
@@ -737,11 +744,12 @@ POST /api/children/{child_id}/records
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | behavior_id | integer | 是 | - | 行为 ID |
-| points | float | 是 | - | 本次获得分值 |
+| points | float | 否 | - | 本次获得分值（传 actual_value 时后端会自动计算） |
 | note | string | 否 | "" | 备注 |
 | record_type | string | 否 | "manual" | 记录类型 (manual/auto) |
+| actual_value | float | 否 | - | 数值类任务的实际值，如实际阅读了 20 分钟 |
 
-**请求示例**
+**请求示例（普通任务）**
 
 ```json
 {
@@ -751,6 +759,19 @@ POST /api/children/{child_id}/records
   "record_type": "manual"
 }
 ```
+
+**请求示例（数值类任务）**
+
+```json
+{
+  "behavior_id": 1,
+  "actual_value": 20,
+  "note": "今天读了20分钟",
+  "record_type": "manual"
+}
+```
+
+> **说明：** 对于数值类任务（`is_numeric=true`），推荐传入 `actual_value`，后端会根据公式自动计算积分：`实际积分 = (actual_value / default_n) × points`。例如：阅读任务默认 30 分钟得 3 分，实际阅读 20 分钟会得 2 分。
 
 **请求头**
 
@@ -1152,3 +1173,179 @@ Authorization: Bearer <token>
 | 401 | 未授权（Token 无效或缺失） |
 | 404 | 资源不存在 |
 | 500 | 服务器内部错误 |
+
+---
+
+## 数值类任务
+
+### 概述
+
+数值类任务允许用户在打卡时输入实际数值，后端根据比例自动计算积分。适用于阅读时长、运动数量等可量化的行为。
+
+### 数据结构
+
+数值类任务通过以下字段标识：
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `name_template` | 模板名称，包含 `{n}` 占位符 | `"阅读{n}分钟"` |
+| `default_n` | 默认数值 | `30` |
+| `is_numeric` | 是否为数值类任务（前端判断用） | `true` |
+| `name` | 显示名称（默认值替换后的名称） | `"阅读30分钟"` |
+| `points` | 默认积分（对应 default_n） | `3` |
+
+### 积分计算公式
+
+```
+实际积分 = (actual_value / default_n) × points
+```
+
+**示例：**
+
+| 任务 | default_n | points | actual_value | 计算结果 |
+|------|-----------|--------|--------------|----------|
+| 阅读30分钟 | 30 | 3 | 20 | (20/30)×3 = 2分 |
+| 阅读30分钟 | 30 | 3 | 45 | (45/30)×3 = 4.5分 |
+| 跳绳500个 | 500 | 3 | 300 | (300/500)×3 = 1.8分 |
+| 数学口算错1题 | 1 | -1 | 3 | (3/1)×(-1) = -3分 |
+
+### 前端显示建议
+
+#### 1. 任务列表显示
+
+**推荐方案：显示默认名称 + 提示可修改**
+
+```
+┌─────────────────────────────┐
+│ 📚 阅读30分钟      +3 ⭐    │
+│    (可修改时长)              │
+└─────────────────────────────┘
+```
+
+**判断逻辑：**
+
+```javascript
+// 判断是否为数值类任务
+if (behavior.is_numeric) {
+  // 显示默认名称，提示用户可修改
+  displayName = behavior.name  // "阅读30分钟"
+  showEditableHint = true      // 显示"(可修改时长)"提示
+} else {
+  // 普通任务，直接显示
+  displayName = behavior.name
+}
+```
+
+#### 2. 打卡弹窗设计
+
+**数值类任务打卡流程：**
+
+```
+┌────────────────────────────────┐
+│        📚 阅读打卡              │
+├────────────────────────────────┤
+│                                │
+│  阅读时长： [  20  ] 分钟       │
+│                                │
+│  预计积分： 2.0 ⭐              │
+│  （30分钟=3分，20分钟=2分）     │
+│                                │
+│  备注：[可选]                  │
+│                                │
+├────────────────────────────────┤
+│      [取消]      [确认打卡]    │
+└────────────────────────────────┘
+```
+
+**实现要点：**
+
+1. **提取单位**：从 `name_template` 提取单位文本
+   ```javascript
+   // "阅读{n}分钟" → 提取 "分钟"
+   const unit = behavior.name_template.replace('{n}', '').match(/[^\d]+/)?.[0] || ''
+   ```
+
+2. **输入组件**：使用数字输入框，单位显示在旁边
+   ```html
+   <input type="number" value="30" min="0" />
+   <span>分钟</span>
+   ```
+
+3. **实时计算积分**：用户输入时实时显示预计积分
+   ```javascript
+   const estimatedPoints = (actualValue / behavior.default_n) * behavior.points
+   ```
+
+4. **发送请求**：
+   ```javascript
+   {
+     behavior_id: behavior.id,
+     actual_value: 20,  // 用户输入的实际值
+     note: "..."
+   }
+   ```
+
+#### 3. 普通任务 vs 数值类任务对比
+
+| 场景 | 普通任务 | 数值类任务 |
+|------|----------|------------|
+| 显示 | 直接显示名称 | 显示名称 + 可修改提示 |
+| 打卡 | 点击即确认 | 弹窗输入实际值 |
+| 积分 | 固定分值 | 按比例计算 |
+| 请求 | 传 `points` | 传 `actual_value` |
+
+#### 4. 小程序实现示例
+
+```javascript
+// 打卡处理
+async onCheckin(behavior) {
+  if (behavior.is_numeric) {
+    // 数值类任务：弹窗输入
+    wx.showModal({
+      title: behavior.name,
+      editable: true,  // 可编辑
+      placeholderText: `请输入实际${this.extractUnit(behavior.name_template)}`,
+      success: (res) => {
+        if (res.confirm && res.content) {
+          const actualValue = parseFloat(res.content)
+          this.submitRecord(behavior.id, actualValue)
+        }
+      }
+    })
+  } else {
+    // 普通任务：直接打卡
+    wx.showModal({
+      title: '确认打卡',
+      content: `确定完成「${behavior.name}」吗？`,
+      success: (res) => {
+        if (res.confirm) {
+          this.submitRecord(behavior.id, null, behavior.points)
+        }
+      }
+    })
+  }
+}
+
+// 提交记录
+async submitRecord(behaviorId, actualValue, points = null) {
+  const data = { behavior_id: behaviorId }
+  if (actualValue !== null) {
+    data.actual_value = actualValue
+  } else {
+    data.points = points
+  }
+  // ... 发送请求
+}
+```
+
+### 预设数值类任务
+
+系统默认包含以下数值类任务：
+
+| 名称 | name_template | default_n | points | 分类 |
+|------|---------------|-----------|--------|------|
+| 阅读30分钟 | 阅读{n}分钟 | 30 | 3 | 学习 |
+| 数学口算错1题 | 数学口算错{n}题 | 1 | -1 | 学习 |
+| 练琴30分钟 | 练琴{n}分钟 | 30 | 3 | 学习 |
+| 户外运动1小时 | 户外运动{n}小时 | 1 | 5 | 运动 |
+| 跳绳500个 | 跳绳{n}个 | 500 | 3 | 运动 |

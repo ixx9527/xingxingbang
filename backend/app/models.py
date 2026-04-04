@@ -49,13 +49,16 @@ class Behavior(Base):
     __tablename__ = "behaviors"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    points = Column(Float, default=0)
+    name = Column(String(100), nullable=False)  # 显示名称，如"阅读30分钟"
+    points = Column(Float, default=0)  # 默认积分
     category = Column(String(50), index=True)
     icon = Column(String(10))
     description = Column(String(255))
     is_system = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # null=管理员预设，有值=用户私有
+    # 数值类任务支持
+    name_template = Column(String(100), nullable=True)  # 模板名称，如"阅读{n}分钟"，null表示非数值类
+    default_n = Column(Float, nullable=True)  # 默认数值，如30，null表示非数值类
     created_at = Column(DateTime, default=datetime.now)
 
     # 关系

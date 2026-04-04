@@ -101,7 +101,8 @@ def get_behavior_by_id(db: Session, behavior_id: int) -> Optional[models.Behavio
 
 
 def create_behavior(db: Session, name: str, points: float, category: str,
-                    icon: str = "", description: str = "", user_id: int = None) -> models.Behavior:
+                    icon: str = "", description: str = "", user_id: int = None,
+                    name_template: str = None, default_n: float = None) -> models.Behavior:
     """创建行为：普通用户创建私有行为(user_id=用户ID)，管理员可创建预设行为(user_id=null)"""
     behavior = models.Behavior(
         name=name,
@@ -110,7 +111,9 @@ def create_behavior(db: Session, name: str, points: float, category: str,
         icon=icon,
         description=description,
         is_system=False,
-        user_id=user_id
+        user_id=user_id,
+        name_template=name_template,
+        default_n=default_n
     )
     db.add(behavior)
     db.commit()
@@ -425,19 +428,20 @@ def delete_invite_code(db: Session, code_id: int, user_id: int) -> bool:
 # ========== 种子数据 ==========
 
 DEFAULT_BEHAVIORS = [
-    {"name": "阅读30分钟", "points": 3, "category": "学习", "icon": "📚"},
+    # 数值类任务（带 name_template 和 default_n）
+    {"name": "阅读30分钟", "points": 3, "category": "学习", "icon": "📚", "name_template": "阅读{n}分钟", "default_n": 30},
     {"name": "数学口算完成", "points": 2, "category": "学习", "icon": "🔢"},
-    {"name": "数学口算错一题", "points": -1, "category": "学习", "icon": "❌"},
+    {"name": "数学口算错1题", "points": -1, "category": "学习", "icon": "❌", "name_template": "数学口算错{n}题", "default_n": 1},
     {"name": "英语朗读", "points": 3, "category": "学习", "icon": "🔤"},
-    {"name": "练琴30分钟", "points": 3, "category": "学习", "icon": "🎹"},
+    {"name": "练琴30分钟", "points": 3, "category": "学习", "icon": "🎹", "name_template": "练琴{n}分钟", "default_n": 30},
     {"name": "完成作业", "points": 5, "category": "学习", "icon": "✏️"},
     {"name": "早起不赖床", "points": 2, "category": "生活", "icon": "🌅"},
     {"name": "自己整理房间", "points": 3, "category": "生活", "icon": "🛏️"},
     {"name": "按时睡觉", "points": 2, "category": "生活", "icon": "😴"},
     {"name": "挑食/剩饭", "points": -2, "category": "生活", "icon": "🍚"},
     {"name": "主动收拾玩具", "points": 2, "category": "生活", "icon": "🧸"},
-    {"name": "户外运动1小时", "points": 5, "category": "运动", "icon": "⚽"},
-    {"name": "跳绳500个", "points": 3, "category": "运动", "icon": "🏃"},
+    {"name": "户外运动1小时", "points": 5, "category": "运动", "icon": "⚽", "name_template": "户外运动{n}小时", "default_n": 1},
+    {"name": "跳绳500个", "points": 3, "category": "运动", "icon": "🏃", "name_template": "跳绳{n}个", "default_n": 500},
     {"name": "游泳", "points": 5, "category": "运动", "icon": "🏊"},
     {"name": "帮妈妈做事", "points": 5, "category": "其他", "icon": "🤝"},
     {"name": "说脏话", "points": -5, "category": "其他", "icon": "🚫"},
