@@ -1081,6 +1081,49 @@ Authorization: Bearer <token>
 
 ### 用户接口
 
+#### 获取当前用户信息
+
+获取当前登录用户的信息。
+
+**请求**
+
+```
+GET /api/user/me
+```
+
+**请求头**
+
+```
+Authorization: Bearer <token>
+```
+
+**响应示例**
+
+```json
+{
+  "id": 1,
+  "username": "testuser",
+  "nickname": "测试用户"
+}
+```
+
+**响应字段**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | integer | 用户 ID |
+| username | string | 用户名 |
+| nickname | string | 昵称 |
+
+**错误响应**
+
+| 状态码 | 说明 |
+|--------|------|
+| 401 | Token 无效或过期 |
+| 404 | 用户不存在 |
+
+---
+
 #### 修改密码
 
 修改当前用户的密码。

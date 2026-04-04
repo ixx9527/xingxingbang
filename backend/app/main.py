@@ -434,6 +434,23 @@ def get_child_level(
 
 # ========== 运行入口 ==========
 
+@app.get("/api/user/me")
+def get_current_user_info(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """获取当前用户信息"""
+    user = crud.get_user_by_id(db, current_user["id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "nickname": user.nickname
+    }
+
+
 @app.post("/api/user/change-password")
 def change_password(
     req: dict,

@@ -35,7 +35,10 @@
     <el-container>
       <el-header>
         <div class="header-right">
-          <span class="username">{{ username }}</span>
+          <span class="user-info">
+            <span class="nickname">{{ userInfo.nickname || userInfo.username }}</span>
+            <span class="user-id">ID: {{ userInfo.id }}</span>
+          </span>
           <el-button type="warning" size="small" @click="showPasswordDialog = true">
             修改密码
           </el-button>
@@ -76,11 +79,11 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis, User, EditPen, Collection, Key } from '@element-plus/icons-vue'
-import api from '../api'
+import api, { user } from '../api'
 
 const router = useRouter()
 const route = useRoute()
-const username = ref('')
+const userInfo = ref({ id: '', username: '', nickname: '' })
 const showPasswordDialog = ref(false)
 const pwdLoading = ref(false)
 const pwdFormRef = ref()
@@ -114,10 +117,10 @@ const pwdRules = {
 const handleChangePassword = async () => {
   const valid = await pwdFormRef.value.validate().catch(() => false)
   if (!valid) return
-  
+
   pwdLoading.value = true
   try {
-    await api.post('/user/change-password', {
+    await user.changePassword({
       old_password: pwdForm.old_password,
       new_password: pwdForm.new_password
     })
@@ -130,9 +133,14 @@ const handleChangePassword = async () => {
   }
 }
 
-onMounted(() => {
-  const user = localStorage.getItem('username')
-  username.value = user || '用户'
+onMounted(async () => {
+  try {
+    const data = await user.me()
+    userInfo.value = data
+  } catch (err) {
+    // 获取失败时从 localStorage 读取
+    userInfo.value.username = localStorage.getItem('username') || '用户'
+  }
 })
 
 const handleLogout = () => {
@@ -195,8 +203,20 @@ const handleLogout = () => {
   gap: 15px;
 }
 
-.username {
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.nickname {
   color: #333;
+  font-weight: 500;
+}
+
+.user-id {
+  color: #999;
+  font-size: 12px;
 }
 
 .el-main {

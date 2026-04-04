@@ -26,6 +26,12 @@ api.interceptors.response.use(
   }
 )
 
+// 用户
+export const user = {
+  me: () => api.get('/user/me'),
+  changePassword: (data) => api.post('/user/change-password', data)
+}
+
 // 认证
 export const auth = {
   login: (data) => api.post('/auth/login', data),
