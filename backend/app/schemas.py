@@ -67,7 +67,7 @@ class BehaviorCreate(BaseModel):
     points: float
     category: str
     icon: str = ""
-    description: str = ""
+    description: Optional[str] = ""
     name_template: Optional[str] = None  # 模板名称，如"阅读{n}分钟"
     default_n: Optional[float] = None  # 默认数值，如30
 
