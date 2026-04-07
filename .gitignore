@@ -31,3 +31,6 @@ logs/
 
 # Node.js
 node_modules/
+
+# Build output
+web/dist/
