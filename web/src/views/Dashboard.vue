@@ -1,109 +1,146 @@
 <template>
-  <div class="dashboard">
-    <h2>数据概览</h2>
-    
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-icon" style="background: #409eff">
-              <el-icon :size="30"><User /></el-icon>
+  <div class="dashboard-page">
+    <div class="page-header">
+      <h2 class="page-title">数据概览</h2>
+    </div>
+
+    <!-- 统计卡片 -->
+    <van-grid :column-num="isMobile ? 2 : 4" :gutter="12">
+      <van-grid-item icon="user-o" text="孩子数量">
+        <template #text>
+          <div class="stat-value">{{ stats.childrenCount }}</div>
+          <div class="stat-label">孩子数量</div>
+        </template>
+      </van-grid-item>
+      <van-grid-item icon="star-o" text="今日积分">
+        <template #text>
+          <div class="stat-value">{{ stats.todayPoints }}</div>
+          <div class="stat-label">今日积分</div>
+        </template>
+      </van-grid-item>
+      <van-grid-item icon="fire-o" text="最高连续">
+        <template #text>
+          <div class="stat-value">{{ stats.maxStreak }}</div>
+          <div class="stat-label">最高连续</div>
+        </template>
+      </van-grid-item>
+      <van-grid-item icon="success" text="打卡次数">
+        <template #text>
+          <div class="stat-value">{{ stats.totalRecords }}</div>
+          <div class="stat-label">打卡次数</div>
+        </template>
+      </van-grid-item>
+    </van-grid>
+
+    <!-- 孩子列表 -->
+    <div class="section-card">
+      <h3 class="section-title">孩子列表</h3>
+      <div v-if="isMobile">
+        <van-cell-group inset>
+          <van-cell
+            v-for="child in children"
+            :key="child.id"
+            :title="child.name"
+            :value="`Lv.${getLevelIndex(child.total_points)}`"
+            :label="`总积分: ${child.total_points} | 连续: ${child.streak_days}天`"
+            is-link
+            @click="viewChild(child)"
+          >
+            <template #icon>
+              <span class="level-tag" :class="'level-' + getLevelIndex(child.total_points)">
+                {{ getLevelName(child.total_points) }}
+              </span>
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </div>
+      <table v-else class="desktop-table">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>总积分</th>
+            <th>连续天数</th>
+            <th>等级</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="child in children" :key="child.id" @click="viewChild(child)">
+            <td>{{ child.name }}</td>
+            <td>{{ child.total_points }}</td>
+            <td>{{ child.streak_days }}</td>
+            <td>
+              <span class="level-tag" :class="'level-' + getLevelIndex(child.total_points)">
+                {{ getLevelName(child.total_points) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 最近打卡 -->
+    <div class="section-card">
+      <h3 class="section-title">最近打卡</h3>
+      <div v-if="isMobile">
+        <van-cell-group inset>
+          <van-cell
+            v-for="record in recentRecords"
+            :key="record.id"
+            :title="record.behavior_name"
+            :label="formatDate(record.created_at)"
+          >
+            <template #icon>
+              <span style="font-size: 20px; margin-right: 8px;">{{ record.behavior_icon }}</span>
+            </template>
+            <template #value>
+              <van-tag type="success">+{{ record.points }}</van-tag>
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </div>
+      <div v-else>
+        <van-steps direction="vertical" :active="0">
+          <van-step v-for="record in recentRecords" :key="record.id">
+            <div class="step-content">
+              <span class="step-icon">{{ record.behavior_icon }}</span>
+              <span>{{ record.behavior_name }}</span>
+              <van-tag type="success" style="margin-left: 8px;">+{{ record.points }}</van-tag>
+              <span class="step-time">{{ formatDate(record.created_at) }}</span>
             </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.childrenCount }}</div>
-              <div class="stat-label">孩子数量</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-icon" style="background: #67c23a">
-              <el-icon :size="30"><Coin /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.todayPoints }}</div>
-              <div class="stat-label">今日积分</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-icon" style="background: #e6a23c">
-              <el-icon :size="30"><Timer /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.maxStreak }}</div>
-              <div class="stat-label">最高连续天数</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-icon" style="background: #f56c6c">
-              <el-icon :size="30"><Trophy /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.totalRecords }}</div>
-              <div class="stat-label">总打卡次数</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <span>孩子列表</span>
-          </template>
-          <el-table :data="children" stripe>
-            <el-table-column prop="name" label="姓名" />
-            <el-table-column prop="total_points" label="总积分" />
-            <el-table-column prop="streak_days" label="连续天数" />
-            <el-table-column label="等级">
-              <template #default="{ row }">
-                <el-tag>{{ getLevelName(row.total_points) }}</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-      
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <span>最近打卡</span>
-          </template>
-          <el-timeline>
-            <el-timeline-item
-              v-for="record in recentRecords"
-              :key="record.id"
-              :timestamp="record.created_at"
-              placement="top"
-            >
-              {{ record.behavior_name }} +{{ record.points }}分
-            </el-timeline-item>
-          </el-timeline>
-        </el-card>
-      </el-col>
-    </el-row>
+          </van-step>
+        </van-steps>
+      </div>
+    </div>
+
+    <!-- 孩子详情弹窗 -->
+    <van-popup v-model:show="showChildPopup" position="bottom" :style="{ height: '50%' }" round>
+      <div class="child-popup" v-if="selectedChild">
+        <h3>{{ selectedChild.name }} 详情</h3>
+        <van-cell-group inset>
+          <van-cell title="姓名" :value="selectedChild.name" />
+          <van-cell title="生日" :value="selectedChild.birth_date" />
+          <van-cell title="性别" :value="selectedChild.gender === 'male' ? '男' : '女'" />
+          <van-cell title="总积分" :value="selectedChild.total_points" />
+          <van-cell title="连续天数" :value="selectedChild.streak_days" />
+          <van-cell title="等级">
+            <template #value>
+              <span class="level-tag" :class="'level-' + getLevelIndex(selectedChild.total_points)">
+                {{ getLevelName(selectedChild.total_points) }}
+              </span>
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { User, Coin, Timer, Trophy } from '@element-plus/icons-vue'
+import { ref, onMounted, computed } from 'vue'
 import { children as childrenApi } from '../api'
+import dayjs from 'dayjs'
+
+const isMobile = ref(window.innerWidth < 768)
 
 const stats = ref({
   childrenCount: 0,
@@ -114,6 +151,8 @@ const stats = ref({
 
 const children = ref([])
 const recentRecords = ref([])
+const showChildPopup = ref(false)
+const selectedChild = ref(null)
 
 const levels = [
   { name: '萌芽宝宝', min: 0 },
@@ -135,32 +174,48 @@ const getLevelName = (points) => {
   return levels[0].name
 }
 
+const getLevelIndex = (points) => {
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (points >= levels[i].min) return i
+  }
+  return 0
+}
+
+const formatDate = (dateStr) => {
+  return dayjs(dateStr).format('MM-DD HH:mm')
+}
+
+const viewChild = async (child) => {
+  try {
+    const detail = await childrenApi.get(child.id)
+    selectedChild.value = detail
+    showChildPopup.value = true
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 768
+  })
+
   try {
     const list = await childrenApi.list()
     children.value = list
-    
+
     stats.value.childrenCount = list.length
-    
-    let maxStreak = 0
-    let totalRecords = 0
-    let todayPoints = 0
-    
+    stats.value.todayPoints = 0
+    stats.value.maxStreak = 0
+
     for (const child of list) {
       const scores = await childrenApi.getScores(child.id)
-      maxStreak = Math.max(maxStreak, scores.streak_days)
-      totalRecords += scores.today_points
-      
-      const levelInfo = await childrenApi.getLevel(child.id)
-      if (levelInfo.leveled_up_today) {
-        // 可以显示升级提示
-      }
+      stats.value.todayPoints += scores.today_points
+      stats.value.maxStreak = Math.max(stats.value.maxStreak, scores.streak_days)
     }
-    
-    stats.value.maxStreak = maxStreak
-    stats.value.totalRecords = totalRecords
-    
-    // 获取最近打卡记录
+
+    stats.value.totalRecords = stats.value.todayPoints
+
     if (list.length > 0) {
       const records = await childrenApi.getRecords(list[0].id, { limit: 5 })
       recentRecords.value = records
@@ -172,38 +227,46 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.dashboard h2 {
-  margin: 0;
+.section-card {
+  background: #fff;
+  border-radius: 8px;
+  margin-top: 12px;
+  padding: 16px;
 }
 
-.stat-card {
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #323233;
+  margin-bottom: 12px;
+}
+
+.step-content {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
 }
 
-.stat-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
+.step-icon {
+  font-size: 20px;
 }
 
-.stat-info {
-  flex: 1;
+.step-time {
+  color: #969799;
+  font-size: 12px;
+  margin-left: auto;
 }
 
-.stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
+.child-popup {
+  padding: 20px 16px;
 }
 
-.stat-label {
-  color: #999;
-  font-size: 14px;
+.child-popup h3 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.desktop-table tr {
+  cursor: pointer;
 }
 </style>

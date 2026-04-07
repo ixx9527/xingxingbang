@@ -1,99 +1,161 @@
 <template>
   <div class="children-page">
-    <div class="header">
-      <h2>孩子管理</h2>
-      <el-button type="primary" @click="showAddDialog">
-        <el-icon><Plus /></el-icon>
-        添加孩子
-      </el-button>
+    <div class="page-header">
+      <h2 class="page-title">孩子管理</h2>
+      <van-button type="primary" size="small" icon="plus" @click="showAddPopup">添加孩子</van-button>
     </div>
-    
-    <el-table :data="children" stripe style="margin-top: 20px">
-      <el-table-column prop="name" label="姓名" width="120" />
-      <el-table-column prop="birth_date" label="生日" width="120" />
-      <el-table-column prop="gender" label="性别" width="80">
-        <template #default="{ row }">
-          {{ row.gender === 'male' ? '男' : '女' }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="total_points" label="总积分" width="100" />
-      <el-table-column prop="streak_days" label="连续天数" width="100" />
-      <el-table-column label="等级">
-        <template #default="{ row }">
-          <el-tag>{{ getLevelName(row.total_points) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button size="small" @click="viewDetail(row)">详情</el-button>
-          <el-button size="small" type="danger" @click="deleteChild(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-    
-    <!-- 添加孩子对话框 -->
-    <el-dialog v-model="dialogVisible" title="添加孩子" width="500px">
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="请输入孩子姓名" />
-        </el-form-item>
-        <el-form-item label="生日" prop="birth_date">
-          <el-date-picker
-            v-model="form.birth_date"
-            type="date"
-            placeholder="选择生日"
-            value-format="YYYY-MM-DD"
-            style="width: 100%"
+
+    <!-- 孩子列表 -->
+    <div v-if="isMobile">
+      <van-cell-group inset>
+        <van-swipe-cell v-for="child in children" :key="child.id">
+          <van-cell
+            :title="child.name"
+            :value="`总积分: ${child.total_points}`"
+            :label="`连续: ${child.streak_days}天 | ${getLevelName(child.total_points)}`"
+            is-link
+            @click="viewDetail(child)"
+          >
+            <template #icon>
+              <van-icon name="user-o" size="20" style="margin-right: 8px;" />
+            </template>
+          </van-cell>
+          <template #right>
+            <van-button square type="danger" text="删除" @click="deleteChild(child)" />
+          </template>
+        </van-swipe-cell>
+      </van-cell-group>
+    </div>
+    <table v-else class="desktop-table">
+      <thead>
+        <tr>
+          <th>姓名</th>
+          <th>生日</th>
+          <th>性别</th>
+          <th>总积分</th>
+          <th>连续天数</th>
+          <th>等级</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="child in children" :key="child.id">
+          <td>{{ child.name }}</td>
+          <td>{{ child.birth_date }}</td>
+          <td>{{ child.gender === 'male' ? '男' : '女' }}</td>
+          <td>{{ child.total_points }}</td>
+          <td>{{ child.streak_days }}</td>
+          <td>
+            <span class="level-tag" :class="'level-' + getLevelIndex(child.total_points)">
+              {{ getLevelName(child.total_points) }}
+            </span>
+          </td>
+          <td>
+            <van-button size="small" @click="viewDetail(child)">详情</van-button>
+            <van-button size="small" type="danger" @click="deleteChild(child)">删除</van-button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 添加孩子弹窗 -->
+    <van-popup v-model:show="showAddDialog" position="bottom" :style="{ height: '60%' }" round>
+      <div class="popup-content">
+        <h3>添加孩子</h3>
+        <van-form @submit="handleSubmit">
+          <van-field
+            v-model="form.name"
+            label="姓名"
+            placeholder="请输入孩子姓名"
+            :rules="[{ required: true, message: '请输入姓名' }]"
           />
-        </el-form-item>
-        <el-form-item label="性别" prop="gender">
-          <el-radio-group v-model="form.gender">
-            <el-radio label="male">男</el-radio>
-            <el-radio label="female">女</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="头像">
-          <el-input v-model="form.avatar" placeholder="头像URL（可选）" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
-    
-    <!-- 详情对话框 -->
-    <el-dialog v-model="detailVisible" title="孩子详情" width="600px">
-      <el-descriptions :column="2" border v-if="selectedChild">
-        <el-descriptions-item label="姓名">{{ selectedChild.name }}</el-descriptions-item>
-        <el-descriptions-item label="生日">{{ selectedChild.birth_date }}</el-descriptions-item>
-        <el-descriptions-item label="性别">
-          {{ selectedChild.gender === 'male' ? '男' : '女' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="总积分">{{ selectedChild.total_points }}</el-descriptions-item>
-        <el-descriptions-item label="连续天数">{{ selectedChild.streak_days }}</el-descriptions-item>
-        <el-descriptions-item label="等级">
-          <el-tag>{{ getLevelName(selectedChild.total_points) }}</el-tag>
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+          <van-field
+            v-model="form.birth_date"
+            label="生日"
+            placeholder="请选择生日"
+            readonly
+            clickable
+            @click="showDatePicker = true"
+            :rules="[{ required: true, message: '请选择生日' }]"
+          />
+          <van-field name="gender" label="性别">
+            <template #input>
+              <van-radio-group v-model="form.gender" direction="horizontal">
+                <van-radio name="male">男</van-radio>
+                <van-radio name="female">女</van-radio>
+              </van-radio-group>
+            </template>
+          </van-field>
+          <van-field
+            v-model="form.avatar"
+            label="头像"
+            placeholder="头像URL（可选）"
+          />
+          <div style="margin: 16px;">
+            <van-button round block type="primary" native-type="submit" :loading="loading">
+              确定
+            </van-button>
+          </div>
+        </van-form>
+      </div>
+    </van-popup>
+
+    <!-- 生日选择器 -->
+    <van-popup v-model:show="showDatePicker" position="bottom" round>
+      <van-date-picker
+        v-model="selectedDate"
+        title="选择生日"
+        :min-date="minDate"
+        :max-date="maxDate"
+        @confirm="onDateConfirm"
+        @cancel="showDatePicker = false"
+      />
+    </van-popup>
+
+    <!-- 详情弹窗 -->
+    <van-popup v-model:show="showDetailDialog" position="bottom" :style="{ height: '50%' }" round>
+      <div class="popup-content" v-if="selectedChild">
+        <h3>{{ selectedChild.name }} 详情</h3>
+        <van-cell-group inset>
+          <van-cell title="姓名" :value="selectedChild.name" />
+          <van-cell title="生日" :value="selectedChild.birth_date" />
+          <van-cell title="性别" :value="selectedChild.gender === 'male' ? '男' : '女'" />
+          <van-cell title="总积分" :value="selectedChild.total_points" />
+          <van-cell title="连续天数" :value="selectedChild.streak_days" />
+          <van-cell title="等级">
+            <template #value>
+              <span class="level-tag" :class="'level-' + getLevelIndex(selectedChild.total_points)">
+                {{ getLevelName(selectedChild.total_points) }}
+              </span>
+            </template>
+          </van-cell>
+        </van-cell-group>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted } from 'vue'
+import { showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import { children as childrenApi } from '../api'
 
+const isMobile = ref(window.innerWidth < 768)
 const children = ref([])
-const dialogVisible = ref(false)
-const detailVisible = ref(false)
+const showAddDialog = ref(false)
+const showDetailDialog = ref(false)
+const showDatePicker = ref(false)
 const selectedChild = ref(null)
 const loading = ref(false)
-const formRef = ref()
+
+const selectedDate = ref([
+  new Date().getFullYear().toString(),
+  (new Date().getMonth() + 1).toString(),
+  new Date().getDate().toString()
+])
+
+const minDate = new Date(2010, 0, 1)
+const maxDate = new Date()
 
 const form = reactive({
   name: '',
@@ -101,12 +163,6 @@ const form = reactive({
   gender: 'male',
   avatar: ''
 })
-
-const rules = {
-  name: [{ required: true, message: '请输入孩子姓名', trigger: 'blur' }],
-  birth_date: [{ required: true, message: '请选择生日', trigger: 'change' }],
-  gender: [{ required: true, message: '请选择性别', trigger: 'change' }]
-}
 
 const levels = [
   { name: '萌芽宝宝', min: 0 },
@@ -128,70 +184,86 @@ const getLevelName = (points) => {
   return levels[0].name
 }
 
+const getLevelIndex = (points) => {
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (points >= levels[i].min) return i
+  }
+  return 0
+}
+
 const loadChildren = async () => {
   try {
     children.value = await childrenApi.list()
   } catch (err) {
-    ElMessage.error('加载失败')
+    showFailToast('加载失败')
   }
 }
 
-const showAddDialog = () => {
+const showAddPopup = () => {
   form.name = ''
   form.birth_date = ''
   form.gender = 'male'
   form.avatar = ''
-  dialogVisible.value = true
+  showAddDialog.value = true
+}
+
+const onDateConfirm = ({ selectedValues }) => {
+  form.birth_date = `${selectedValues[0]}-${selectedValues[1]}-${selectedValues[2]}`
+  showDatePicker.value = false
 }
 
 const handleSubmit = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
-  
   loading.value = true
   try {
     await childrenApi.create(form)
-    ElMessage.success('添加成功')
-    dialogVisible.value = false
+    showSuccessToast('添加成功')
+    showAddDialog.value = false
     loadChildren()
   } catch (err) {
-    ElMessage.error(err.response?.data?.detail || '添加失败')
+    showFailToast(err.response?.data?.detail || '添加失败')
   } finally {
     loading.value = false
   }
 }
 
-const viewDetail = async (row) => {
+const viewDetail = async (child) => {
   try {
-    selectedChild.value = await childrenApi.get(row.id)
-    detailVisible.value = true
+    selectedChild.value = await childrenApi.get(child.id)
+    showDetailDialog.value = true
   } catch (err) {
-    ElMessage.error('加载详情失败')
+    showFailToast('加载详情失败')
   }
 }
 
-const deleteChild = async (row) => {
+const deleteChild = async (child) => {
   try {
-    await ElMessageBox.confirm(`确定要删除 ${row.name} 吗？`, '提示', {
-      type: 'warning'
+    await showConfirmDialog({
+      title: '提示',
+      message: `确定要删除 ${child.name} 吗？`
     })
     // TODO: 调用删除 API
-    ElMessage.success('删除成功')
+    showSuccessToast('删除成功')
     loadChildren()
-  } catch {}
+  } catch {
+    // 用户取消
+  }
 }
 
-onMounted(loadChildren)
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 768
+  })
+  loadChildren()
+})
 </script>
 
 <style scoped>
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.popup-content {
+  padding: 20px 16px;
 }
 
-.header h2 {
-  margin: 0;
+.popup-content h3 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 </style>

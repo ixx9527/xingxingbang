@@ -20,15 +20,15 @@ services:
 
   # Web 管理后台
   web:
-    image: node:18
+    build:
+      context: ./web
+      dockerfile: Dockerfile
     container_name: xingxingbang-web
-    working_dir: /app
-    volumes:
-      - ./web:/app
-    command: sh -c "npm install && npm run dev"
-    ports:
-      - "3000:3000"
     restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 networks:
   default:

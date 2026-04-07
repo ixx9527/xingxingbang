@@ -1,159 +1,198 @@
 <template>
   <div class="invite-codes-page">
-    <div class="header">
-      <h2>邀请码管理</h2>
-      <el-button type="primary" @click="showAddDialog">
-        <el-icon><Plus /></el-icon>
-        生成邀请码
-      </el-button>
+    <div class="page-header">
+      <h2 class="page-title">邀请码管理</h2>
+      <van-button type="primary" size="small" icon="plus" @click="showCreatePopup">生成邀请码</van-button>
     </div>
-    
-    <el-card style="margin-top: 20px">
-      <el-table :data="codes" stripe>
-        <el-table-column prop="code" label="邀请码" width="180">
-          <template #default="{ row }">
-            <code style="background: #f5f7fa; padding: 4px 8px; border-radius: 4px">
-              {{ row.code }}
+
+    <!-- 邀请码列表 -->
+    <div v-if="isMobile">
+      <van-cell-group inset>
+        <van-swipe-cell v-for="code in inviteCodes" :key="code.id">
+          <van-cell
+            :title="code.code"
+            :label="`剩余: ${code.remaining_uses}/${code.max_uses === -1 ? '无限' : code.max_uses} | ${formatDate(code.expires_at)}`"
+          >
+            <template #icon>
+              <van-icon name="lock" size="20" style="margin-right: 8px;" />
+            </template>
+            <template #value>
+              <van-tag v-if="code.is_active" type="success">有效</van-tag>
+              <van-tag v-else type="danger">无效</van-tag>
+            </template>
+            <template #extra>
+              <van-button size="small" type="primary" plain @click="copyCode(code.code)">复制</van-button>
+            </template>
+          </van-cell>
+          <template #right>
+            <van-button square type="danger" text="删除" @click="deleteCode(code)" />
+          </template>
+        </van-swipe-cell>
+      </van-cell-group>
+    </div>
+    <table v-else class="desktop-table">
+      <thead>
+        <tr>
+          <th>邀请码</th>
+          <th>已使用/总次数</th>
+          <th>有效期</th>
+          <th>备注</th>
+          <th>状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="code in inviteCodes" :key="code.id">
+          <td>
+            <code style="background: #f7f8fa; padding: 4px 8px; border-radius: 4px; font-family: monospace;">
+              {{ code.code }}
             </code>
-            <el-button size="small" text @click="copyCode(row.code)">
-              复制
-            </el-button>
-          </template>
-        </el-table-column>
-        <el-table-column label="已使用/总次数" width="120">
-          <template #default="{ row }">
-            {{ row.used_count }} / {{ row.max_uses === -1 ? '无限' : row.max_uses }}
-          </template>
-        </el-table-column>
-        <el-table-column label="有效期" width="180">
-          <template #default="{ row }">
-            {{ row.expires_at ? row.expires_at.substring(0, 10) : '永久' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="note" label="备注" />
-        <el-table-column label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'">
-              {{ row.is_active ? '有效' : '无效' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100">
-          <template #default="{ row }">
-            <el-button size="small" type="danger" @click="deleteCode(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-    
-    <!-- 生成邀请码对话框 -->
-    <el-dialog v-model="dialogVisible" title="生成邀请码" width="500px">
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <el-form-item label="可用次数" prop="max_uses">
-          <el-input-number v-model="form.max_uses" :min="1" :max="100" />
-          <span style="margin-left: 10px; color: #999">-1 表示无限次</span>
-        </el-form-item>
-        <el-form-item label="有效期" prop="days_valid">
-          <el-input-number v-model="form.days_valid" :min="1" :max="365" />
-          <span style="margin-left: 10px; color: #999">天</span>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.note" placeholder="可选备注" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
-          生成
-        </el-button>
-      </template>
-    </el-dialog>
+            <van-button size="small" type="primary" plain style="margin-left: 8px;" @click="copyCode(code.code)">复制</van-button>
+          </td>
+          <td>{{ code.used_count }} / {{ code.max_uses === -1 ? '无限' : code.max_uses }}</td>
+          <td>{{ formatDate(code.expires_at) }}</td>
+          <td>{{ code.note || '-' }}</td>
+          <td>
+            <van-tag v-if="code.is_active" type="success">有效</van-tag>
+            <van-tag v-else type="danger">无效</van-tag>
+          </td>
+          <td>
+            <van-button size="small" type="danger" @click="deleteCode(code)">删除</van-button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 生成邀请码弹窗 -->
+    <van-popup v-model:show="showCreateDialog" position="bottom" :style="{ height: '50%' }" round>
+      <div class="popup-content">
+        <h3>生成邀请码</h3>
+        <van-form @submit="handleCreate">
+          <van-field
+            v-model="createForm.max_uses"
+            type="number"
+            label="可用次数"
+            placeholder="可使用次数（-1表示无限）"
+            :rules="[{ required: true, message: '请输入次数' }]"
+          />
+          <van-field
+            v-model="createForm.days_valid"
+            type="number"
+            label="有效天数"
+            placeholder="有效天数"
+            :rules="[{ required: true, message: '请输入天数' }]"
+          />
+          <van-field
+            v-model="createForm.note"
+            label="备注"
+            placeholder="备注（可选）"
+          />
+          <div style="margin: 16px;">
+            <van-button round block type="primary" native-type="submit" :loading="loading">
+              生成
+            </van-button>
+          </div>
+        </van-form>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted } from 'vue'
+import { showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import { inviteCodes as inviteCodesApi } from '../api'
+import dayjs from 'dayjs'
 
-const codes = ref([])
-const dialogVisible = ref(false)
+const isMobile = ref(window.innerWidth < 768)
+const inviteCodes = ref([])
+const showCreateDialog = ref(false)
 const loading = ref(false)
-const formRef = ref()
 
-const form = reactive({
+const createForm = reactive({
   max_uses: 10,
   days_valid: 30,
   note: ''
 })
 
-const rules = {
-  max_uses: [{ required: true, message: '请输入可用次数', trigger: 'blur' }],
-  days_valid: [{ required: true, message: '请输入有效期', trigger: 'blur' }]
+const formatDate = (dateStr) => {
+  if (!dateStr) return '永久'
+  return dayjs(dateStr).format('YYYY-MM-DD')
 }
 
-const loadCodes = async () => {
+const loadInviteCodes = async () => {
   try {
-    codes.value = await inviteCodesApi.list()
+    inviteCodes.value = await inviteCodesApi.list()
   } catch (err) {
-    ElMessage.error('加载失败')
+    showFailToast('加载失败')
   }
 }
 
-const showAddDialog = () => {
-  form.max_uses = 10
-  form.days_valid = 30
-  form.note = ''
-  dialogVisible.value = true
+const showCreatePopup = () => {
+  createForm.max_uses = 10
+  createForm.days_valid = 30
+  createForm.note = ''
+  showCreateDialog.value = true
 }
 
-const handleSubmit = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
-  
+const handleCreate = async () => {
   loading.value = true
   try {
-    await inviteCodesApi.create(form)
-    ElMessage.success('生成成功')
-    dialogVisible.value = false
-    loadCodes()
+    await inviteCodesApi.create({
+      max_uses: Number(createForm.max_uses),
+      days_valid: Number(createForm.days_valid),
+      note: createForm.note
+    })
+    showSuccessToast('生成成功')
+    showCreateDialog.value = false
+    loadInviteCodes()
   } catch (err) {
-    ElMessage.error(err.response?.data?.detail || '生成失败')
+    showFailToast(err.response?.data?.detail || '生成失败')
   } finally {
     loading.value = false
   }
 }
 
-const deleteCode = async (row) => {
+const copyCode = async (code) => {
   try {
-    await ElMessageBox.confirm(`确定要删除这个邀请码吗？`, '提示', { type: 'warning' })
-    await inviteCodesApi.delete(row.id)
-    ElMessage.success('删除成功')
-    loadCodes()
-  } catch (err) {
-    ElMessage.error(err.response?.data?.detail || '删除失败')
+    await navigator.clipboard.writeText(code)
+    showSuccessToast('已复制')
+  } catch {
+    showFailToast('复制失败')
   }
 }
 
-const copyCode = (code) => {
-  navigator.clipboard.writeText(code)
-  ElMessage.success('已复制到剪贴板')
+const deleteCode = async (code) => {
+  try {
+    await showConfirmDialog({
+      title: '提示',
+      message: '确定要删除此邀请码吗？'
+    })
+    await inviteCodesApi.delete(code.id)
+    showSuccessToast('删除成功')
+    loadInviteCodes()
+  } catch (err) {
+    if (err !== 'cancel') {
+      showFailToast(err.response?.data?.detail || '删除失败')
+    }
+  }
 }
 
-onMounted(loadCodes)
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 768
+  })
+  loadInviteCodes()
+})
 </script>
 
 <style scoped>
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.popup-content {
+  padding: 20px 16px;
 }
 
-.header h2 {
-  margin: 0;
+.popup-content h3 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 </style>

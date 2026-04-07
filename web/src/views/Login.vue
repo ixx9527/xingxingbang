@@ -1,64 +1,46 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-card">
-      <template #header>
-        <div class="card-header">
-          <h2>⭐ 星星榜</h2>
-          <p>儿童成长打卡系统</p>
-        </div>
-      </template>
-      
-      <el-form :model="form" :rules="rules" ref="formRef" @submit.prevent="handleLogin">
-        <el-form-item prop="username">
-          <el-input 
-            v-model="form.username" 
-            placeholder="用户名"
-            :prefix-icon="User"
-            size="large"
-          />
-        </el-form-item>
-        
-        <el-form-item prop="password">
-          <el-input 
-            v-model="form.password" 
-            type="password" 
-            placeholder="密码"
-            :prefix-icon="Lock"
-            size="large"
-            show-password
-            @keyup.enter="handleLogin"
-          />
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            size="large" 
-            style="width: 100%" 
-            :loading="loading"
-            @click="handleLogin"
-          >
-            登录
-          </el-button>
-        </el-form-item>
-      </el-form>
-      
-      <div class="footer">
-        <router-link to="/register">还没有账号？注册</router-link>
+  <div class="login-page">
+    <div class="login-header">
+      <h1>⭐ 星星榜</h1>
+      <p>儿童成长打卡系统</p>
+    </div>
+
+    <van-form @submit="handleLogin" class="login-form">
+      <van-field
+        v-model="form.username"
+        name="username"
+        label="用户名"
+        placeholder="请输入用户名"
+        :rules="[{ required: true, message: '请输入用户名' }]"
+      />
+      <van-field
+        v-model="form.password"
+        type="password"
+        name="password"
+        label="密码"
+        placeholder="请输入密码"
+        :rules="[{ required: true, message: '请输入密码' }]"
+      />
+      <div style="margin: 16px;">
+        <van-button round block type="primary" native-type="submit" :loading="loading">
+          登录
+        </van-button>
       </div>
-    </el-card>
+    </van-form>
+
+    <div class="login-footer">
+      <router-link to="/register">没有账号？去注册</router-link>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
+import { showSuccessToast, showFailToast } from 'vant'
 import { auth } from '../api'
 
 const router = useRouter()
-const formRef = ref()
 const loading = ref(false)
 
 const form = reactive({
@@ -66,25 +48,20 @@ const form = reactive({
   password: ''
 })
 
-const rules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-}
-
 const handleLogin = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
-
   loading.value = true
   try {
-    const res = await auth.login(form)
-    localStorage.setItem('token', res.access_token)
-    localStorage.setItem('refresh_token', res.refresh_token)
-    localStorage.setItem('user', JSON.stringify({ username: form.username }))
-    ElMessage.success('登录成功')
-    router.push('/')
+    const data = await auth.login({
+      username: form.username,
+      password: form.password
+    })
+    localStorage.setItem('token', data.access_token)
+    localStorage.setItem('refresh_token', data.refresh_token)
+    localStorage.setItem('username', form.username)
+    showSuccessToast('登录成功')
+    router.push('/dashboard')
   } catch (err) {
-    ElMessage.error(err.response?.data?.detail || '登录失败')
+    showFailToast(err.response?.data?.detail || '登录失败')
   } finally {
     loading.value = false
   }
@@ -92,40 +69,43 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
+.login-page {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.login-card {
-  width: 400px;
-}
-
-.card-header {
+.login-header {
   text-align: center;
+  margin-bottom: 40px;
 }
 
-.card-header h2 {
+.login-header h1 {
+  color: #fff;
+  font-size: 32px;
   margin: 0;
-  color: #333;
 }
 
-.card-header p {
-  margin: 5px 0 0;
-  color: #999;
-  font-size: 14px;
+.login-header p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8px;
 }
 
-.footer {
+.login-form {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.login-footer {
   text-align: center;
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
-.footer a {
-  color: #409eff;
-  text-decoration: none;
+.login-footer a {
+  color: rgba(255, 255, 255, 0.9);
 }
 </style>
