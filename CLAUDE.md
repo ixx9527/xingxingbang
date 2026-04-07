@@ -7,12 +7,23 @@
 ### 部署命令
 
 ```bash
-cd /path/to/xingxingbang && git pull && docker compose up -d --build backend
+cd /path/to/xingxingbang && git pull && docker compose up -d --build
 ```
 
-### 说明
+### 服务说明
 
-- 项目使用 `docker-compose.yml` 管理容器
-- 后端服务名称: `backend`，容器名称: `xingxingbang-backend`
-- 数据持久化目录: `./data`
-- 后端端口: `8000`
+| 服务 | 容器名称 | 端口 | 说明 |
+|------|----------|------|------|
+| backend | xingxingbang-backend | 8000 | FastAPI 后端 |
+| web | xingxingbang-web | 80 | Vue 3 前端 (nginx) |
+
+### 数据持久化
+
+- 数据目录: `./data`
+- 数据库文件: `./data/xingxingbang.db`
+
+### 架构
+
+- 前端使用 nginx 部署静态文件，并代理 `/api` 请求到后端
+- 后端 FastAPI 提供 REST API
+- 数据库使用 SQLite
